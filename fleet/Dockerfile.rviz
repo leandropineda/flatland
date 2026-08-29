@@ -1,0 +1,13 @@
+# RViz2 container for the fleet (compose profile "viz").
+ARG ROS_DISTRO=jazzy
+FROM ros:${ROS_DISTRO}-ros-base
+
+ARG ROS_DISTRO
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ros-${ROS_DISTRO}-rviz2 \
+    ros-${ROS_DISTRO}-rmw-cyclonedds-cpp \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY rviz/ /fleet/rviz/

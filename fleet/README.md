@@ -44,6 +44,24 @@ and cmd_vel ignored while nav2 keeps the mission — built for exercising an
 external traffic manager. The whole world can also be paused with the
 flatland `/pause` + `/resume` services.
 
+## Watch it (RViz2)
+
+```bash
+xhost +local:docker                    # allow the container to use your X display
+docker compose --profile viz up -d --build rviz
+```
+
+One RViz window shows the whole world: walls and every robot body as
+flatland ground-truth markers, per-robot laser scans and nav plans in
+distinct colors, robot1's SLAM map overlay, its camera stream, battery text
+and charging zones. Fixed frame is `map` — the rviz launch publishes static
+`map -> robotN/map` transforms so all the per-robot SLAM trees line up in
+one world view (flatland odometry is world-anchored, so they agree).
+
+The markers come from flatland's `show_viz` (on by default here, 10 Hz;
+`SHOW_VIZ=false docker compose up -d sim` turns them off). flatland_viz,
+the old Qt app, remains disabled upstream — RViz2 covers it.
+
 The camera renders only while something subscribes to
 `/robotN/image_raw` (or `/compressed`), so idle cost is zero:
 

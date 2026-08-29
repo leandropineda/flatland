@@ -44,6 +44,8 @@ services:
       -p world_path:=/fleet/sim/world.yaml
       -p update_rate:=50.0
       -p step_size:=0.02
+      -p show_viz:=${SHOW_VIZ:-true}
+      -p viz_pub_rate:=10.0
     restart: unless-stopped
 
   robot1:
@@ -60,3 +62,27 @@ services:
     <<: *robot
     container_name: fleet-robot3
     command: ros2 launch /fleet/nav2/robot.launch.py namespace:=robot3
+
+  # Optional world view: docker compose --profile viz up -d
+  # Needs an X display on the host: xhost +local:docker
+  rviz:
+    build:
+      context: .
+      dockerfile: Dockerfile.rviz
+      args:
+        ROS_DISTRO: ${ROS_DISTRO:-jazzy}
+    image: fleet-rviz:${ROS_DISTRO:-jazzy}
+    container_name: fleet-rviz
+    profiles: [viz]
+    environment:
+      <<: *ros-env
+      DISPLAY: ${DISPLAY:-:0}
+      QT_X11_NO_MITSHM: "1"
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ./sim:/fleet/sim:ro
+    devices:
+      - /dev/dri:/dev/dri
+    command: ros2 launch /fleet/rviz/rviz.launch.py
+    depends_on:
+      - sim
