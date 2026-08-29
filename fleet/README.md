@@ -29,6 +29,9 @@ docker compose up --build -d     # first build ~10 min
 
 ```bash
 ./ctl.sh goal robot1 3.0 0.5     # NavigateToPose (in robot1/map frame)
+                                 # robots run SLAM: pick goals in/near space
+                                 # the robot has already seen, or drive it
+                                 # around a bit first
 ./ctl.sh pause robot1            # halt movement; the goal stays active
 ./ctl.sh resume robot1           # continue to the same goal
 ./ctl.sh mode robot2 cleaning    # fake operating mode (latched /robot2/mode)

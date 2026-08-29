@@ -20,7 +20,9 @@ jobs:
           --build-arg ROS_DISTRO=${{ matrix.ros_distro }}
           -t flatland:${{ matrix.ros_distro }} .
       - name: Test (${{ matrix.ros_distro }})
+        # --retest-until-pass: the service/laser integration tests spin up a
+        # full node graph and can miss DDS discovery on slow CI runners
         run: >
           docker run --rm flatland:${{ matrix.ros_distro }} bash -c
-          "cd /ws && colcon test --event-handlers console_direct+
+          "cd /ws && colcon test --retest-until-pass 2
           && colcon test-result --verbose"
