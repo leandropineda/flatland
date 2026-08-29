@@ -1,0 +1,68 @@
+# Differential-drive robot with laser, camera and battery.
+# One body, four plugins. Every topic and TF frame is prefixed with the
+# model's namespace from world.yaml (robot1/scan, robot1/odom, ...).
+bodies:
+  - name: base_link
+    pose: [0, 0, 0]
+    type: dynamic
+    color: [0.2, 0.8, 0.2, 0.9]
+    footprints:
+      - type: polygon
+        points: [[-0.15, -0.15], [-0.15, 0.15], [0.15, 0.15], [0.15, -0.15]]
+        density: 100.0
+        layers: ["2d"]
+
+plugins:
+  - type: DiffDrive
+    name: drive
+    body: base_link
+    odom_frame_id: odom
+    pub_rate: 20.0
+    twist_sub: cmd_vel
+    odom_pub: odom
+    ground_truth_pub: ground_truth
+    # nav2 <= jazzy publishes geometry_msgs/Twist; set true on kilted+ fleets
+    # (or keep nav2's enable_stamped_cmd_vel: false, as fleet/nav2 does).
+    stamped_cmd_vel: false
+    odom_pose_noise: [0.001, 0.001, 0.001]
+    odom_twist_noise: [0.001, 0.001, 0.001]
+
+  - type: Laser
+    name: laser
+    body: base_link
+    topic: scan
+    frame: laser
+    broadcast_tf: true
+    update_rate: 5.0
+    origin: [0, 0, 0]
+    range: 8.0
+    noise_std_dev: 0.01
+    angle: {min: -3.14159265, max: 3.14159265, increment: 0.01745329}
+    layers: ["2d"]
+
+  - type: Camera
+    name: camera
+    body: base_link
+    topic: image_raw
+    frame: camera_link
+    broadcast_tf: true
+    update_rate: 10.0   # renders only while someone subscribes
+    width: 320
+    height: 240
+    fov_deg: 90
+    range: 8.0
+
+  - type: Modes
+    name: modes
+    initial_mode: idle
+    modes: [idle, cleaning, transporting, charging]
+
+  - type: Battery
+    name: battery
+    body: base_link
+    topic: battery_state
+    pub_rate: 1.0
+    capacity_ah: 5.0
+    initial_charge: 0.9
+    charging_zones:
+      - {x: 1.0, y: 1.0, radius: 0.6, name: "Charger A"}

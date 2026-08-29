@@ -73,6 +73,7 @@ add_library(flatland_plugins_lib SHARED
   src/gps.cpp
   src/battery.cpp
   src/camera.cpp
+  src/modes.cpp
 )
 
 ament_target_dependencies(flatland_plugins_lib rclcpp flatland_server flatland_msgs pluginlib std_msgs std_srvs sensor_msgs visualization_msgs nav_msgs geometry_msgs tf2 tf2_ros tf2_geometry_msgs yaml_cpp_vendor)

@@ -1,0 +1,62 @@
+# Simulated fleet: one flatland world, one nav2+SLAM container per robot.
+# Everything shares one DDS domain on the default compose network; robots are
+# separated by ROS namespace (topics) and frame prefix (TF), not by domain.
+#
+#   docker compose up --build -d
+#   ./ctl.sh status
+#
+# Add a robot: add a models: entry in sim/world.yaml + one service below.
+
+x-ros-env: &ros-env
+  # CycloneDDS: no shared-memory transport, so containers talk plain UDP over
+  # the bridge network with zero extra config (FastDDS SHM breaks silently
+  # across containers). On k8s swap discovery to a Fast DDS discovery server
+  # or CYCLONEDDS_URI unicast peers; nothing else changes.
+  RMW_IMPLEMENTATION: rmw_cyclonedds_cpp
+  ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
+
+x-robot: &robot
+  build:
+    context: .
+    dockerfile: Dockerfile.nav2
+    args:
+      ROS_DISTRO: ${ROS_DISTRO:-jazzy}
+  image: fleet-nav2:${ROS_DISTRO:-jazzy}
+  environment: *ros-env
+  depends_on:
+    - sim
+  restart: unless-stopped
+
+services:
+  sim:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        ROS_DISTRO: ${ROS_DISTRO:-jazzy}
+    image: flatland:${ROS_DISTRO:-jazzy}
+    container_name: fleet-sim
+    environment: *ros-env
+    volumes:
+      - ./sim:/fleet/sim:ro
+    command: >
+      ros2 run flatland_server flatland_server --ros-args
+      -p world_path:=/fleet/sim/world.yaml
+      -p update_rate:=50.0
+      -p step_size:=0.02
+    restart: unless-stopped
+
+  robot1:
+    <<: *robot
+    container_name: fleet-robot1
+    command: ros2 launch /fleet/nav2/robot.launch.py namespace:=robot1
+
+  robot2:
+    <<: *robot
+    container_name: fleet-robot2
+    command: ros2 launch /fleet/nav2/robot.launch.py namespace:=robot2
+
+  robot3:
+    <<: *robot
+    container_name: fleet-robot3
+    command: ros2 launch /fleet/nav2/robot.launch.py namespace:=robot3

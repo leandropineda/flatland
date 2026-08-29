@@ -53,6 +53,8 @@
 #include <geometry_msgs/msg/twist.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
+#include <std_srvs/srv/set_bool.hpp>
+
 #include <random>
 
 #ifndef FLATLAND_PLUGINS_DIFFDRIVE_H
@@ -73,6 +75,8 @@ public:
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_pub_;
   Body * body_;
   geometry_msgs::msg::Twist twist_msg_;  ///< last commanded velocity (zero-initialized)
+  rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr pause_srv_;
+  bool paused_ = false;  ///< while true the body is held still and cmd_vel is ignored
   nav_msgs::msg::Odometry odom_msg_;
   nav_msgs::msg::Odometry ground_truth_msg_;
   UpdateTimer update_timer_;

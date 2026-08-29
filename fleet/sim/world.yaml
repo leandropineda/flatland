@@ -1,0 +1,23 @@
+# Office world with a small fleet. Add a robot: copy a models entry, give it
+# a unique name/namespace and a free-space pose, then add a matching nav2
+# container in ../docker-compose.yml.
+properties: {}
+
+layers:
+  - name: "2d"
+    map: "maps/office.yaml"
+    color: [0.4, 0.4, 0.4, 1]
+
+models:
+  - name: robot1
+    namespace: robot1
+    pose: [2.0, 1.0, 0.0]
+    model: "turtlebot.model.yaml"
+  - name: robot2
+    namespace: robot2
+    pose: [2.0, 3.0, 0.0]
+    model: "turtlebot.model.yaml"
+  - name: robot3
+    namespace: robot3
+    pose: [4.0, 2.0, 1.5708]
+    model: "turtlebot.model.yaml"

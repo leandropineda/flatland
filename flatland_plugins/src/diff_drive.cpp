@@ -136,6 +136,22 @@ void DiffDrive::OnInitialize(const YAML::Node & config)
     twist_pub_ = node_->create_publisher<geometry_msgs::msg::TwistStamped>(twist_pub_topic, 1);
   }
 
+  // Movement pause (e.g. an external traffic manager holding the robot):
+  // while paused the body is pinned and cmd_vel is ignored; the nav stack
+  // keeps its goal and the robot continues on resume.
+  pause_srv_ = node_->create_service<std_srvs::srv::SetBool>(
+    GetModel()->NameSpaceTopic("pause"),
+    [this](
+      const std::shared_ptr<std_srvs::srv::SetBool::Request> req,
+      std::shared_ptr<std_srvs::srv::SetBool::Response> res) {
+      paused_ = req->data;
+      res->success = true;
+      res->message = paused_ ? "movement paused" : "movement resumed";
+      RCLCPP_INFO(
+        rclcpp::get_logger("DiffDrive"), "%s: %s", GetModel()->GetName().c_str(),
+        res->message.c_str());
+    });
+
   // init the values for the messages
   ground_truth_msg_.header.frame_id = GetModel()->NameSpaceTF(odom_frame_id);
   ground_truth_msg_.child_frame_id = GetModel()->NameSpaceTF(body_->name_);
@@ -243,6 +259,12 @@ void DiffDrive::BeforePhysicsStep(const Timekeeper & timekeeper)
     odom_tf.transform.translation.z = 0;
     odom_tf.transform.rotation = odom_msg_.pose.pose.orientation;
     tf_broadcaster_->sendTransform(odom_tf);
+  }
+
+  if (paused_) {
+    b2body->SetLinearVelocity(b2Vec2(0, 0));
+    b2body->SetAngularVelocity(0);
+    return;
   }
 
   // we apply the twist velocities, this must be done every physics step to make

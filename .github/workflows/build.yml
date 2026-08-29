@@ -1,0 +1,26 @@
+name: build
+
+on:
+  push:
+    branches: [ros2-devel]
+  pull_request:
+
+jobs:
+  docker:
+    strategy:
+      fail-fast: false
+      matrix:
+        ros_distro: [humble, jazzy, kilted, lyrical]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build (${{ matrix.ros_distro }})
+        run: >
+          docker build -f docker/Dockerfile
+          --build-arg ROS_DISTRO=${{ matrix.ros_distro }}
+          -t flatland:${{ matrix.ros_distro }} .
+      - name: Test (${{ matrix.ros_distro }})
+        run: >
+          docker run --rm flatland:${{ matrix.ros_distro }} bash -c
+          "cd /ws && colcon test --event-handlers console_direct+
+          && colcon test-result --verbose"
