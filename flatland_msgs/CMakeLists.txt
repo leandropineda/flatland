@@ -24,6 +24,7 @@ find_package(geometry_msgs REQUIRED)
 
 set(msg_files
   "msg/DebugTopicList.msg"
+  "msg/Pose2D.msg"
   "msg/Collision.msg"
   "msg/Collisions.msg"
   "msg/Vector2.msg"
