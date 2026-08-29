@@ -59,8 +59,6 @@
 namespace flatland_plugins
 {
 
-void DiffDrive::TwistCallback(const geometry_msgs::msg::TwistStamped::SharedPtr msg) { twist_msg_ = msg; }
-
 void DiffDrive::OnInitialize(const YAML::Node & config)
 {
   tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(node_);
@@ -68,6 +66,9 @@ void DiffDrive::OnInitialize(const YAML::Node & config)
   YamlReader reader(node_, config);
   enable_odom_pub_ = reader.Get<bool>("enable_odom_pub", true);
   enable_twist_pub_ = reader.Get<bool>("enable_twist_pub", true);
+  // Nav2 publishes geometry_msgs/Twist by default up to Jazzy and
+  // TwistStamped from Kilted on; pick the wire type per model.
+  bool stamped_cmd_vel = reader.Get<bool>("stamped_cmd_vel", false);
   std::string body_name = reader.Get<std::string>("body");
   std::string odom_frame_id = reader.Get<std::string>("odom_frame_id", "odom");
 
@@ -110,18 +111,22 @@ void DiffDrive::OnInitialize(const YAML::Node & config)
     throw YAMLException("Body with name " + Q(body_name) + " does not exist");
   }
 
-  //append namespace to topics
-  std::string ns = this->GetModel()->GetNameSpace();
-  twist_topic = ns + "/" + twist_topic;
-  odom_topic = ns + "/" + odom_topic;
-  ground_truth_topic = ns + "/" + ground_truth_topic;
-  twist_pub_topic = ns + "/" + twist_pub_topic;
-  
+  // append the model namespace to topics
+  twist_topic = GetModel()->NameSpaceTopic(twist_topic);
+  odom_topic = GetModel()->NameSpaceTopic(odom_topic);
+  ground_truth_topic = GetModel()->NameSpaceTopic(ground_truth_topic);
+  twist_pub_topic = GetModel()->NameSpaceTopic(twist_pub_topic);
 
   // publish and subscribe to topics
-  using std::placeholders::_1;
-  twist_sub_ = node_->create_subscription<geometry_msgs::msg::TwistStamped>(
-    twist_topic, 1, std::bind(&DiffDrive::TwistCallback, this, _1));
+  if (stamped_cmd_vel) {
+    twist_stamped_sub_ = node_->create_subscription<geometry_msgs::msg::TwistStamped>(
+      twist_topic, 1,
+      [this](const geometry_msgs::msg::TwistStamped::SharedPtr msg) { twist_msg_ = msg->twist; });
+  } else {
+    twist_sub_ = node_->create_subscription<geometry_msgs::msg::Twist>(
+      twist_topic, 1,
+      [this](const geometry_msgs::msg::Twist::SharedPtr msg) { twist_msg_ = *msg; });
+  }
   if (enable_odom_pub_) {
     odom_pub_ = node_->create_publisher<nav_msgs::msg::Odometry>(odom_topic, 1);
     ground_truth_pub_ = node_->create_publisher<nav_msgs::msg::Odometry>(ground_truth_topic, 1);
@@ -132,7 +137,7 @@ void DiffDrive::OnInitialize(const YAML::Node & config)
   }
 
   // init the values for the messages
-  ground_truth_msg_.header.frame_id = odom_frame_id;
+  ground_truth_msg_.header.frame_id = GetModel()->NameSpaceTF(odom_frame_id);
   ground_truth_msg_.child_frame_id = GetModel()->NameSpaceTF(body_->name_);
   ground_truth_msg_.twist.covariance.fill(0);
   ground_truth_msg_.pose.covariance.fill(0);
@@ -243,9 +248,9 @@ void DiffDrive::BeforePhysicsStep(const Timekeeper & timekeeper)
   // we apply the twist velocities, this must be done every physics step to make
   // sure Box2D solver applies the correct velocity through out. The velocity
   // given in the twist message should be in the local frame
-  b2Vec2 linear_vel_local(twist_msg_->twist.linear.x, 0);
+  b2Vec2 linear_vel_local(twist_msg_.linear.x, 0);
   b2Vec2 linear_vel = b2body->GetWorldVector(linear_vel_local);
-  float angular_vel = twist_msg_->twist.angular.z;  // angular is independent of frames
+  float angular_vel = twist_msg_.angular.z;  // angular is independent of frames
 
   // we want the velocity vector in the world frame at the center of mass
 

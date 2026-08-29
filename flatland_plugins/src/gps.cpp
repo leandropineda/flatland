@@ -15,7 +15,8 @@ void Gps::OnInitialize(const YAML::Node & config)
   tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(node_);
   ParseParameters(config);
   update_timer_.SetRate(update_rate_);
-  fix_publisher_ = node_->create_publisher<sensor_msgs::msg::NavSatFix>(topic_, 1);
+  fix_publisher_ =
+    node_->create_publisher<sensor_msgs::msg::NavSatFix>(GetModel()->NameSpaceTopic(topic_), 1);
 
   double c = cos(origin_.theta);
   double s = sin(origin_.theta);

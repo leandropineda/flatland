@@ -150,32 +150,32 @@ TEST_F(ModelTfPublisherTest, tf_publish_test_A)
   }
 
   // check for the transformations that should exist
-  tf_world_to_base = tf_buffer.lookupTransform("world", "my_robot_base", rclcpp::Time(0));
-  tf_world_to_antenna = tf_buffer.lookupTransform("world", "my_robot_antenna", rclcpp::Time(0));
+  tf_world_to_base = tf_buffer.lookupTransform("world", "my_robot/base", rclcpp::Time(0));
+  tf_world_to_antenna = tf_buffer.lookupTransform("world", "my_robot/antenna", rclcpp::Time(0));
   tf_base_to_left_wheel =
-    tf_buffer.lookupTransform("my_robot_base", "my_robot_left_wheel", rclcpp::Time(0));
+    tf_buffer.lookupTransform("my_robot/base", "my_robot/left_wheel", rclcpp::Time(0));
   tf_base_to_right_wheel =
-    tf_buffer.lookupTransform("my_robot_base", "my_robot_right_wheel", rclcpp::Time(0));
+    tf_buffer.lookupTransform("my_robot/base", "my_robot/right_wheel", rclcpp::Time(0));
 
   // check for the transformations that should not exist
   try {
     tf_base_to_front_bumper =
-      tf_buffer.lookupTransform("my_robot_base", "my_robot_front_bumper", rclcpp::Time(0));
+      tf_buffer.lookupTransform("my_robot/base", "my_robot/front_bumper", rclcpp::Time(0));
     ADD_FAILURE() << "Expected an exception, but none were raised";
   } catch (const tf2::TransformException & e) {
     EXPECT_STREQ(
-      "\"my_robot_front_bumper\" passed to lookupTransform argument "
+      "\"my_robot/front_bumper\" passed to lookupTransform argument "
       "source_frame does not exist. ",
       e.what());
   }
 
   try {
     tf_base_to_rear_bumper =
-      tf_buffer.lookupTransform("my_robot_base", "my_robot_rear_bumper", rclcpp::Time(0));
+      tf_buffer.lookupTransform("my_robot/base", "my_robot/rear_bumper", rclcpp::Time(0));
     ADD_FAILURE() << "Expected an exception, but none were raised";
   } catch (const tf2::TransformException & e) {
     EXPECT_STREQ(
-      "\"my_robot_rear_bumper\" passed to lookupTransform argument "
+      "\"my_robot/rear_bumper\" passed to lookupTransform argument "
       "source_frame does not exist. ",
       e.what());
   }

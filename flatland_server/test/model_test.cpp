@@ -58,8 +58,8 @@ TEST(TestSuite, testNameSpaceTF)
 {
   std::shared_ptr<rclcpp::Node> node = rclcpp::Node::make_shared("testNameSpaceTF_node");
   flatland_server::Model has_ns(node, nullptr, nullptr, std::string("foo"), std::string("has_ns"));
-  // namespace "foo" onto tf "bar" => foo_bar
-  EXPECT_EQ(has_ns.NameSpaceTF("bar"), "foo_bar");
+  // namespace "foo" onto tf "bar" => foo/bar
+  EXPECT_EQ(has_ns.NameSpaceTF("bar"), "foo/bar");
   // namespace "foo" onto tf "/bar" => bar
   EXPECT_EQ(has_ns.NameSpaceTF("/bar"), "bar");
 

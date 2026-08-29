@@ -223,11 +223,11 @@ TEST_F(LaserPluginTest, range_test)
 
   auto * obj = dynamic_cast<LaserPluginTest *>(this);
   auto sub_1 = node->create_subscription<sensor_msgs::msg::LaserScan>(
-    "robot1/scan", 1, std::bind(&LaserPluginTest::ScanFrontCb, obj, _1));
+    "r/scan", 1, std::bind(&LaserPluginTest::ScanFrontCb, obj, _1));
   auto sub_2 = node->create_subscription<sensor_msgs::msg::LaserScan>(
-    "robot1/scan_center", 1, std::bind(&LaserPluginTest::ScanCenterCb, obj, _1));
+    "r/scan_center", 1, std::bind(&LaserPluginTest::ScanCenterCb, obj, _1));
   auto sub_3 = node->create_subscription<sensor_msgs::msg::LaserScan>(
-    "robot1/scan_back", 1, std::bind(&LaserPluginTest::ScanBackCb, obj, _1));
+    "r/scan_back", 1, std::bind(&LaserPluginTest::ScanBackCb, obj, _1));
 
   auto * p1 = dynamic_cast<Laser *>(w->plugin_manager_.model_plugins_[0].get());
   auto * p2 = dynamic_cast<Laser *>(w->plugin_manager_.model_plugins_[1].get());
@@ -246,7 +246,7 @@ TEST_F(LaserPluginTest, range_test)
   // check scan returns
   EXPECT_TRUE(scan_front_received);
   EXPECT_TRUE(ScanEq(
-    scan_front, "r_laser_front", -M_PI / 2, M_PI / 2, M_PI / 2, 0.0, 0.0, 0.0, 5.0, {4.5, 4.4, 4.3},
+    scan_front, "r/laser_front", -M_PI / 2, M_PI / 2, M_PI / 2, 0.0, 0.0, 0.0, 5.0, {4.5, 4.4, 4.3},
     {}));
   EXPECT_TRUE(fltcmp(p1->update_rate_, std::numeric_limits<float>::infinity()))
     << "Actual: " << p1->update_rate_;
@@ -254,14 +254,14 @@ TEST_F(LaserPluginTest, range_test)
 
   EXPECT_TRUE(scan_center_received);
   EXPECT_TRUE(ScanEq(
-    scan_center, "r_center_laser", 0, 2 * M_PI, M_PI / 2, 0.0, 0.0, 0.0, 5.0,
+    scan_center, "r/center_laser", 0, 2 * M_PI, M_PI / 2, 0.0, 0.0, 0.0, 5.0,
     {4.8, 4.7, 4.6, 4.9, 4.8}, {}));
   EXPECT_TRUE(fltcmp(p2->update_rate_, 5000)) << "Actual: " << p2->update_rate_;
   EXPECT_EQ(p2->body_, w->models_[0]->bodies_[0]);
 
   EXPECT_TRUE(scan_back_received);
   EXPECT_TRUE(ScanEq(
-    scan_back, "r_laser_back", 0, 2 * M_PI, M_PI / 2, 0.0, 0.0, 0.0, 4, {NAN, 3.2, 3.5, NAN, NAN},
+    scan_back, "r/laser_back", 0, 2 * M_PI, M_PI / 2, 0.0, 0.0, 0.0, 4, {NAN, 3.2, 3.5, NAN, NAN},
     {}));
   EXPECT_TRUE(fltcmp(p3->update_rate_, 1)) << "Actual: " << p3->update_rate_;
   EXPECT_EQ(p3->body_, w->models_[0]->bodies_[0]);
@@ -280,11 +280,11 @@ TEST_F(LaserPluginTest, intensity_test)
 
   auto * obj = dynamic_cast<LaserPluginTest *>(this);
   auto sub_1 = node->create_subscription<sensor_msgs::msg::LaserScan>(
-    "robot1/scan", 1, std::bind(&LaserPluginTest::ScanFrontCb, obj, _1));
+    "r/scan", 1, std::bind(&LaserPluginTest::ScanFrontCb, obj, _1));
   auto sub_2 = node->create_subscription<sensor_msgs::msg::LaserScan>(
-    "robot1/scan_center", 1, std::bind(&LaserPluginTest::ScanCenterCb, obj, _1));
+    "r/scan_center", 1, std::bind(&LaserPluginTest::ScanCenterCb, obj, _1));
   auto sub_3 = node->create_subscription<sensor_msgs::msg::LaserScan>(
-    "robot1/scan_back", 1, std::bind(&LaserPluginTest::ScanBackCb, obj, _1));
+    "r/scan_back", 1, std::bind(&LaserPluginTest::ScanBackCb, obj, _1));
 
   auto * p1 = dynamic_cast<Laser *>(w->plugin_manager_.model_plugins_[0].get());
   auto * p2 = dynamic_cast<Laser *>(w->plugin_manager_.model_plugins_[1].get());
@@ -300,18 +300,18 @@ TEST_F(LaserPluginTest, intensity_test)
 
   // check scan returns
   EXPECT_TRUE(ScanEq(
-    scan_front, "r_laser_front", -M_PI / 2, M_PI / 2, M_PI / 2, 0.0, 0.0, 0.0, 5.0, {4.5, 4.4, 4.3},
+    scan_front, "r/laser_front", -M_PI / 2, M_PI / 2, M_PI / 2, 0.0, 0.0, 0.0, 5.0, {4.5, 4.4, 4.3},
     {0, 0, 0}));
   EXPECT_TRUE(fltcmp(p1->update_rate_, std::numeric_limits<float>::infinity()))
     << "Actual: " << p1->update_rate_;
   EXPECT_EQ(p1->body_, w->models_[0]->bodies_[0]);
   EXPECT_TRUE(ScanEq(
-    scan_center, "r_center_laser", 0, 2 * M_PI, M_PI / 2, 0.0, 0.0, 0.0, 5.0,
+    scan_center, "r/center_laser", 0, 2 * M_PI, M_PI / 2, 0.0, 0.0, 0.0, 5.0,
     {4.8, 4.7, 4.6, 4.9, 4.8}, {0, 255, 0, 0, 0}));
   EXPECT_TRUE(fltcmp(p2->update_rate_, 5000)) << "Actual: " << p2->update_rate_;
   EXPECT_EQ(p2->body_, w->models_[0]->bodies_[0]);
   EXPECT_TRUE(ScanEq(
-    scan_back, "r_laser_back", 0, 2 * M_PI, M_PI / 2, 0.0, 0.0, 0.0, 4, {NAN, 3.2, 3.5, NAN, NAN},
+    scan_back, "r/laser_back", 0, 2 * M_PI, M_PI / 2, 0.0, 0.0, 0.0, 4, {NAN, 3.2, 3.5, NAN, NAN},
     {0, 0, 0, 0, 0}));
   EXPECT_TRUE(fltcmp(p3->update_rate_, 1)) << "Actual: " << p3->update_rate_;
   EXPECT_EQ(p3->body_, w->models_[0]->bodies_[0]);

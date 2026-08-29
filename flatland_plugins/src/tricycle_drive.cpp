@@ -70,6 +70,9 @@ void TricycleDrive::OnInitialize(const YAML::Node & config)
   string rear_left_wj_name = r.Get<string>("rear_left_wheel_joint");
   string rear_right_wj_name = r.Get<string>("rear_right_wheel_joint");
   string odom_frame_id = r.Get<string>("odom_frame_id", "odom");
+  // Nav2 publishes geometry_msgs/Twist by default up to Jazzy and
+  // TwistStamped from Kilted on; pick the wire type per model.
+  bool stamped_cmd_vel = r.Get<bool>("stamped_cmd_vel", false);
 
   string twist_topic = r.Get<string>("twist_sub", "cmd_vel");
   string odom_topic = r.Get<string>("odom_pub", "odometry/filtered");
@@ -134,15 +137,26 @@ void TricycleDrive::OnInitialize(const YAML::Node & config)
   // calculate rear wheel separation and wheel base
   ComputeJoints();
 
+  // append the model namespace to topics
+  twist_topic = GetModel()->NameSpaceTopic(twist_topic);
+  odom_topic = GetModel()->NameSpaceTopic(odom_topic);
+  ground_truth_topic = GetModel()->NameSpaceTopic(ground_truth_topic);
+
   // publish and subscribe to topics
-  using std::placeholders::_1;
-  twist_sub_ = node_->create_subscription<geometry_msgs::msg::TwistStamped>(
-    twist_topic, 1, std::bind(&TricycleDrive::TwistCallback, this, _1));
+  if (stamped_cmd_vel) {
+    twist_stamped_sub_ = node_->create_subscription<geometry_msgs::msg::TwistStamped>(
+      twist_topic, 1,
+      [this](const geometry_msgs::msg::TwistStamped::SharedPtr msg) { twist_msg_ = msg->twist; });
+  } else {
+    twist_sub_ = node_->create_subscription<geometry_msgs::msg::Twist>(
+      twist_topic, 1,
+      [this](const geometry_msgs::msg::Twist::SharedPtr msg) { twist_msg_ = *msg; });
+  }
   odom_pub_ = node_->create_publisher<nav_msgs::msg::Odometry>(odom_topic, 1);
   ground_truth_pub_ = node_->create_publisher<nav_msgs::msg::Odometry>(ground_truth_topic, 1);
 
   // init the values for the messages
-  ground_truth_msg_.header.frame_id = odom_frame_id;
+  ground_truth_msg_.header.frame_id = GetModel()->NameSpaceTF(odom_frame_id);
   ground_truth_msg_.child_frame_id = GetModel()->NameSpaceTF(body_->name_);
 
   ground_truth_msg_.twist.covariance.fill(0);
@@ -344,8 +358,8 @@ void TricycleDrive::BeforePhysicsStep(const Timekeeper & timekeeper)
   //   |d2δ[t]| <= max_steer_acceleration_
 
   // twist message contains the speed and angle of the front wheel
-  double v_f = twist_msg_->twist.linear.x;       // target velocity at front wheel
-  delta_command_ = twist_msg_->twist.angular.z;  // target steering angle
+  double v_f = twist_msg_.linear.x;       // target velocity at front wheel
+  delta_command_ = twist_msg_.angular.z;  // target steering angle
   double theta = angle;                    // angle of robot in map frame
   double dt = timekeeper.GetStepSize();
 
@@ -386,7 +400,7 @@ void TricycleDrive::BeforePhysicsStep(const Timekeeper & timekeeper)
     rclcpp::get_logger("TricycleDrive"), steady_clock, 500,
     "Using new tricycle steering, d2_delta = %.4f, "
     "d_delta = %.4f, twist.x = %.4f, twist.delta = %.4f",
-    d2_delta, d_delta_, twist_msg_->twist.linear.x, twist_msg_->twist.angular.z);
+    d2_delta, d_delta_, twist_msg_.linear.x, twist_msg_.angular.z);
 
   // change angle of the front wheel for visualization
 
@@ -423,11 +437,6 @@ void TricycleDrive::BeforePhysicsStep(const Timekeeper & timekeeper)
 
   // angular velocity is the same at any point in body
   b2body->SetAngularVelocity(w);
-}
-
-void TricycleDrive::TwistCallback(const geometry_msgs::msg::TwistStamped::SharedPtr msg)
-{
-  twist_msg_ = msg;
 }
 
 double TricycleDrive::Saturate(double in, double lower, double upper)
