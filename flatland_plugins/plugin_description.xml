@@ -23,6 +23,12 @@
   <class type="flatland_plugins::Gps" base_class_type="flatland_server::ModelPlugin">
     <description>Simulate GPS receiver and publish a NavSatFix message</description>
   </class>
+  <class type="flatland_plugins::Battery" base_class_type="flatland_server::ModelPlugin">
+    <description>Simulate a battery: drain by motion, charging zones, BatteryState output</description>
+  </class>
+  <class type="flatland_plugins::Camera" base_class_type="flatland_server::ModelPlugin">
+    <description>Raycasted 2.5D camera publishing sensor_msgs/Image (+compressed JPEG)</description>
+  </class>
   <class type="flatland_plugins::RandomWall" base_class_type="flatland_server::WorldPlugin">
     <description>Add random walls into the world</description>
   </class>
