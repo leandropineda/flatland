@@ -45,6 +45,9 @@ def setup(context, *args, **kwargs):
             namespace=ns,
             output='screen',
             parameters=[params_file],
+            # slam_toolbox hardcodes absolute /map; pull it into the namespace
+            # so N robots don't fight over one topic
+            remappings=[('/map', 'map'), ('/map_metadata', 'map_metadata')],
         )
     ]
     for package, executable in NAV2_NODES:

@@ -132,7 +132,7 @@ local_costmap:
         enabled: true
         observation_sources: scan
         scan:
-          topic: scan
+          topic: /${NS}/scan
           max_obstacle_height: 2.0
           clearing: true
           marking: true
@@ -161,13 +161,15 @@ global_costmap:
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         map_subscribe_transient_local: true
-        map_topic: map
+        # costmap nodes live under /NS/global_costmap/, so relative names
+        # resolve there; point explicitly at the robot's topics instead
+        map_topic: /${NS}/map
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: true
         observation_sources: scan
         scan:
-          topic: scan
+          topic: /${NS}/scan
           max_obstacle_height: 2.0
           clearing: true
           marking: true

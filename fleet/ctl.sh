@@ -21,7 +21,9 @@ case "$cmd" in
     ;;
   goal)
     ns=${2:?robot namespace required}; x=${3:?x}; y=${4:?y}
-    "${IN_SIM[@]}" ros2 action send_goal "/$ns/navigate_to_pose" nav2_msgs/action/NavigateToPose \
+    # from the robot's own container: the sim image has no nav2_msgs
+    docker exec "fleet-$ns" /ros_entrypoint.sh ros2 action send_goal "/$ns/navigate_to_pose" \
+      nav2_msgs/action/NavigateToPose \
       "{pose: {header: {frame_id: $ns/map}, pose: {position: {x: $x, y: $y}, orientation: {w: 1.0}}}}"
     ;;
   mode)

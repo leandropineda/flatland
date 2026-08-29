@@ -44,15 +44,17 @@ for ns in $ROBOTS; do
 done
 
 first=$(echo "$ROBOTS" | head -1)
+# goals go through the robot's own container: the sim image has no nav2_msgs
+R=(docker exec "fleet-$first" /ros_entrypoint.sh)
 echo "== navigation + pause/resume ($first)"
 
 # short goal ~1m ahead of spawn; world.yaml spawns robot1 at (2,1) facing +x
 check "$first accepts and reaches a goal" bash -c \
-  "${E[*]} bash -c 'timeout 120 ros2 action send_goal /$first/navigate_to_pose nav2_msgs/action/NavigateToPose \"{pose: {header: {frame_id: $first/map}, pose: {position: {x: 1.0, y: 0.0}, orientation: {w: 1.0}}}}\"' | grep -q 'SUCCEEDED'"
+  "${R[*]} bash -c 'timeout 120 ros2 action send_goal /$first/navigate_to_pose nav2_msgs/action/NavigateToPose \"{pose: {header: {frame_id: $first/map}, pose: {position: {x: 1.0, y: 0.0}, orientation: {w: 1.0}}}}\"' | grep -q 'SUCCEEDED'"
 
 # pause mid-goal: send a longer goal in background, pause, confirm zero motion,
 # resume, confirm the same goal still completes.
-"${E[@]}" bash -c "nohup timeout 180 ros2 action send_goal /$first/navigate_to_pose nav2_msgs/action/NavigateToPose '{pose: {header: {frame_id: $first/map}, pose: {position: {x: 3.5, y: 0.5}, orientation: {w: 1.0}}}}' > /tmp/goal.log 2>&1 &"
+"${R[@]}" bash -c "nohup timeout 180 ros2 action send_goal /$first/navigate_to_pose nav2_msgs/action/NavigateToPose '{pose: {header: {frame_id: $first/map}, pose: {position: {x: 3.0, y: 0.0}, orientation: {w: 1.0}}}}' > /tmp/goal.log 2>&1 &"
 sleep 4
 check "$first pause acknowledged" bash -c \
   "${E[*]} ros2 service call /$first/pause std_srvs/srv/SetBool '{data: true}' | grep -q 'success=True'"
@@ -62,7 +64,7 @@ check "$first stands still while paused" bash -c \
 check "$first resume acknowledged" bash -c \
   "${E[*]} ros2 service call /$first/pause std_srvs/srv/SetBool '{data: false}' | grep -q 'success=True'"
 check "$first completes the paused goal" bash -c \
-  "${E[*]} bash -c 'for i in \$(seq 90); do grep -q SUCCEEDED /tmp/goal.log && exit 0; sleep 2; done; cat /tmp/goal.log; exit 1'"
+  "${R[*]} bash -c 'for i in \$(seq 90); do grep -q SUCCEEDED /tmp/goal.log && exit 0; sleep 2; done; cat /tmp/goal.log; exit 1'"
 
 echo
 [ "$FAIL" = 0 ] && echo "SMOKE: ALL PASS" || echo "SMOKE: FAILURES ABOVE"
