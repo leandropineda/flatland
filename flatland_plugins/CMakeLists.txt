@@ -38,7 +38,7 @@ find_package(OpenCV REQUIRED)
 #  rostest
 
 
-find_package(Eigen3 REQUIRED)# lua5.1
+find_package(Eigen3 REQUIRED NO_MODULE)# lua5.1
 find_package(Lua 5.1 QUIET)
 
 find_package(Boost REQUIRED COMPONENTS filesystem)
@@ -84,13 +84,12 @@ target_include_directories(flatland_plugins_lib PUBLIC
   $<INSTALL_INTERFACE:include>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/thirdparty/tweeny>
   $<INSTALL_INTERFACE:include/thirdparty/tweeny>
-  ${Eigen3_INCLUDE_DIRS}
   ${LUA_INCLUDE_DIR}
   ${yaml_cpp_vendor_INCLUDE_DIRS})
 
 
 target_link_libraries(flatland_plugins_lib
-  ${Eigen3_LIBRARIES}
+  Eigen3::Eigen
   ${LUA_LIBRARIES}
   ${OpenCV_LIBRARIES}
   yaml-cpp

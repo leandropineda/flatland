@@ -30,6 +30,7 @@
   <depend>flatland_server</depend>
   <depend>visualization_msgs</depend>
   <depend>interactive_markers</depend>
+  <depend>eigen</depend>
   <depend>lua-dev</depend>
   <depend>libboost-date-time-dev</depend>
   <depend>libboost-filesystem-dev</depend>

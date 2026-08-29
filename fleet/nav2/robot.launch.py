@@ -70,7 +70,9 @@ def setup(context, *args, **kwargs):
             # no bond heartbeats: fewer idle wakeups per robot; respawn=True
             # on the nodes covers crashes instead
             'bond_timeout': 0.0,
-            'node_names': [e for _, e in NAV2_NODES],
+            # slam_toolbox is a lifecycle node too (jazzy+); activate it
+            # first so map->odom TF exists before the costmaps come up
+            'node_names': ['slam_toolbox'] + [e for _, e in NAV2_NODES],
         }],
     ))
     return nodes
