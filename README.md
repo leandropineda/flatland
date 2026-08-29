@@ -1,35 +1,57 @@
-# README #
+# Flatland (ROS 2 fork)
 
-![ci test result](https://travis-ci.com/avidbots/flatland.svg?branch=master "CI Test Result")
+![build](https://github.com/leandropineda/flatland/actions/workflows/build.yml/badge.svg?branch=ros2-devel)
 
+Fork of [avidbots/flatland](https://github.com/avidbots/flatland), a
+performance-centric 2D robot simulator. This `ros2-devel` branch continues
+upstream's `ros2-jazzy` line and builds on every supported (non-EOL) ROS 2
+distro: **humble, jazzy, kilted, lyrical** (CI matrix).
 
-### What is this repository for? ###
+What this branch adds over upstream `ros2-jazzy`:
 
-* Flatland is a performance centric 2d robot simulator
-* [Roadmap on trello](https://trello.com/b/s9poP2Jg/flatland-2d-simulator)
-* Release Version: None
+* **Multi-robot worlds that work**: every plugin topic goes through the
+  model namespace (`/robot1/scan`, `/robot1/cmd_vel`, ...) and TF frames are
+  prefixed ROS2-style (`robot1/odom`, not `robot1_odom`). One world file, N
+  robots, zero collisions.
+* **Camera plugin**: raycasted 2.5D camera streaming `sensor_msgs/Image`
+  plus JPEG `CompressedImage` and `CameraInfo`; renders only while
+  subscribed. **Battery plugin**: motion-based drain, charging zones,
+  `BatteryState`, dock command. **Modes plugin**: fake operating modes
+  (idle/cleaning/...) as latched state. (Camera/battery imported from
+  [OpenRobOps/sim-flatland](https://github.com/OpenRobOps/sim-flatland).)
+* **Per-robot movement pause**: `/robotN/pause` (std_srvs/SetBool) pins the
+  robot while the nav stack keeps its goal — made for traffic-manager
+  testing. World-level `/pause`, `/resume`, `/toggle_pause` still exist.
+* **DiffDrive/TricycleDrive `stamped_cmd_vel` param**: `Twist` (default,
+  nav2 ≤ jazzy) or `TwistStamped` (nav2 kilted+) — humble compatibility.
+* `docker/Dockerfile` builds any distro:
+  `docker build -f docker/Dockerfile --build-arg ROS_DISTRO=humble .`
 
-### How do I get set up? ###
+## Simulated fleet
 
-* Git clone flatland into your catkin workspace's src folder, and catkin build.
-* Optionally check out [turtlebot_flatland](https://github.com/avidbots/turtlebot_flatland) and run the turtlebot nav stack
-* Run `rosdep install --from-paths src --ignore-src` in your catkin workspace to install any missing rosdeps
+[`fleet/`](fleet/) runs a complete multi-robot setup with docker compose:
+one sim container + one nav2+slam_toolbox container per robot, one shared
+DDS domain, pause/resume and camera streaming out of the box. See
+[fleet/README.md](fleet/README.md).
 
-### Who do I talk to? ###
+## Native build
 
-* Please direct any questions to @josephduchesne
+```bash
+# in a colcon workspace src/
+rosdep install --from-paths src --ignore-src -y
+colcon build   # flatland_viz stays COLCON_IGNOREd (WIP upstream, issue #108)
+```
 
-### Documentation ###
+## Upstream docs
 
 * How to use: http://flatland-simulator.readthedocs.io
 * Doxygen: http://flatland-simulator-api.readthedocs.io
-* For a quick start use: https://github.com/avidbots/turtlebot_flatland
 
-### License ###
-All Flatland code is BSD 3-clause licensed (see LICENSE for details)
+## License
 
-Flatland uses a number of open source libraries that it includes in its source tree:
+BSD 3-clause (see LICENSE for details), same as upstream.
+
+Flatland includes open source libraries in its source tree:
 - [ThreadPool](https://github.com/progschj/ThreadPool) Copyright (c) 2012 Jakob Progsch, Václav Zeman (zlib license)
 - [Tweeny](https://github.com/mobius3/tweeny) Copyright (c) 2016 Leonardo Guilherme de Freitas (MIT license)
 - [Box2d](https://github.com/erincatto/Box2D) Copyright (c) 2006-2017 Erin Catto [http://www.box2d.org](http://www.box2d.org) (zlib license)
-
