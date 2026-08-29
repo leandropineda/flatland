@@ -15,6 +15,7 @@ endif()
 ## is used, also find other catkin packages
 
 find_package(ament_cmake REQUIRED)
+include(${CMAKE_CURRENT_SOURCE_DIR}/../cmake/ament_compat.cmake)
 
 find_package(rclcpp REQUIRED)  
 find_package(rviz2 REQUIRED)

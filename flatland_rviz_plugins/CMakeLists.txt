@@ -15,6 +15,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 
 find_package(ament_cmake REQUIRED)
+include(${CMAKE_CURRENT_SOURCE_DIR}/../cmake/ament_compat.cmake)
 find_package(geometry_msgs REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(Qt5 REQUIRED COMPONENTS Core Gui Widgets Test Concurrent)

@@ -12,6 +12,7 @@ Frames are disambiguated by name prefix (robotN/odom, ...) instead.
 import os
 import tempfile
 
+import yaml
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
@@ -30,10 +31,11 @@ def setup(context, *args, **kwargs):
 
     template = os.path.join(os.path.dirname(__file__), 'nav2_params.yaml')
     with open(template) as f:
-        params = f.read().replace('${NS}', ns)
+        params = yaml.safe_load(f.read().replace('${NS}', ns))
     params_file = os.path.join(tempfile.gettempdir(), f'{ns}_nav2_params.yaml')
     with open(params_file, 'w') as f:
-        f.write(params)
+        # nest under the namespace so the sections match /<ns>/<node> nodes
+        yaml.safe_dump({ns: params}, f)
 
     nodes = [
         Node(
