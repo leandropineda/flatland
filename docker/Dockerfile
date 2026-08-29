@@ -8,6 +8,7 @@ FROM ros:${ROS_DISTRO}-ros-base
 ARG ROS_DISTRO
 ENV DEBIAN_FRONTEND=noninteractive
 
+COPY cmake/ /ws/src/flatland/cmake/
 COPY flatland_box2d/ /ws/src/flatland/flatland_box2d/
 COPY flatland_msgs/ /ws/src/flatland/flatland_msgs/
 COPY flatland_server/ /ws/src/flatland/flatland_server/
