@@ -28,7 +28,7 @@ find_package(visualization_msgs REQUIRED)
 find_package(interactive_markers REQUIRED)
 
 # Boost
-find_package(Boost REQUIRED COMPONENTS date_time system filesystem)
+find_package(Boost REQUIRED COMPONENTS filesystem)
 
 ##############
 ## coverage ##

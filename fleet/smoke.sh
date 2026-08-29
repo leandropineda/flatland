@@ -14,10 +14,9 @@ check() { # check <label> <cmd...>
 }
 
 hz_at_least() { # hz_at_least <topic> <min_hz> <window_s>
-  local topic=$1 min=$2 win=${3:-5}
-  local n
-  n=$("${E[@]}" bash -c "timeout $win ros2 topic echo $topic --field header.stamp.sec 2>/dev/null | grep -c '^[0-9]'" || true)
-  [ "${n:-0}" -ge "$((min * win / 2))" ] # at least half the nominal rate
+  local topic=$1 min=$2 win=${3:-6}
+  "${E[@]}" bash -c "timeout $win ros2 topic hz $topic 2>/dev/null | grep -m1 'average rate' \
+    | awk '{exit (\$3 >= $min * 0.5) ? 0 : 1}'" # at least half the nominal rate
 }
 
 echo "== containers"

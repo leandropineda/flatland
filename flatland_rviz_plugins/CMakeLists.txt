@@ -35,7 +35,7 @@ find_package(flatland_msgs REQUIRED)
 find_package(Lua 5.1 REQUIRED)
 
 # Boost
-find_package(Boost REQUIRED COMPONENTS date_time system filesystem)
+find_package(Boost REQUIRED COMPONENTS filesystem)
 
 set(flatland_rviz_plugins_headers_to_moc
   include/flatland_rviz_plugins/change_rate_tool.hpp

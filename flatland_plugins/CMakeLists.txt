@@ -40,7 +40,7 @@ find_package(OpenCV REQUIRED)
 find_package(Eigen3 REQUIRED)# lua5.1
 find_package(Lua 5.1 QUIET)
 
-find_package(Boost REQUIRED COMPONENTS date_time system filesystem)
+find_package(Boost REQUIRED COMPONENTS filesystem)
 
 ##############
 ## coverage ##
@@ -163,7 +163,8 @@ if(BUILD_TESTING)
   # Plain assert-based executable (no ROS deps), registered as an ament test.
   add_executable(camera_math_test test/camera_math_test.cpp)
   target_include_directories(camera_math_test PRIVATE include)
-  ament_add_test(camera_math_test COMMAND $<TARGET_FILE:camera_math_test>)
+  ament_add_test(camera_math_test COMMAND $<TARGET_FILE:camera_math_test>
+    GENERATE_RESULT_FOR_RETURN_CODE_ZERO)
 endif()
 
 ament_package()
