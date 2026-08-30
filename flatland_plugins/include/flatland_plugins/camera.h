@@ -17,6 +17,7 @@
 #include <thirdparty/ThreadPool.h>
 #include <Box2D/Box2D.h>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <thread>
 #include <unordered_set>
@@ -26,8 +27,6 @@ namespace flatland_plugins {
 
 class Camera : public flatland_server::ModelPlugin {
  public:
-  Camera() : pool_(std::thread::hardware_concurrency() + 1) {}
-
   void OnInitialize(const YAML::Node &config) override;
   void BeforePhysicsStep(const flatland_server::Timekeeper &timekeeper) override;
 
@@ -83,7 +82,8 @@ class Camera : public flatland_server::ModelPlugin {
   // Cached transform body→camera (3x3 in homogeneous coords, matching laser.cpp).
   Eigen::Matrix3f m_body_to_camera_;
 
-  ThreadPool pool_;
+  std::unique_ptr<ThreadPool> pool_;  ///< workers for concurrent raycasts ("threads" param)
+  int pool_size_;                     ///< number of worker threads
 };
 
 }  // namespace flatland_plugins

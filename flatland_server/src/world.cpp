@@ -113,8 +113,9 @@ void World::Update(Timekeeper & timekeeper)
     timekeeper.StepTime();
     plugin_manager_.AfterPhysicsStep(timekeeper);
   }
-  int_marker_manager_.update();
 }
+
+void World::UpdateInteractiveMarkers() { int_marker_manager_.update(); }
 
 void World::BeginContact(b2Contact * contact) { plugin_manager_.BeginContact(contact); }
 

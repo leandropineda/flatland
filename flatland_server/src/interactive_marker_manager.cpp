@@ -222,8 +222,9 @@ void InteractiveMarkerManager::update()
       new_pose.orientation.w = cos(0.5 * theta);
       new_pose.orientation.z = sin(0.5 * theta);
       interactive_marker_server_->setPose((*models_)[i]->GetName(), new_pose);
-      interactive_marker_server_->applyChanges();
     }
+    // one batched flush per update, not one publish per model
+    interactive_marker_server_->applyChanges();
   }
 
   // Detect when interaction stops without triggering a MOUSE_UP event by

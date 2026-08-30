@@ -1,4 +1,6 @@
 #include <flatland_plugins/camera.h>
+
+#include <algorithm>
 #include <flatland_server/exceptions.h>
 #include <flatland_server/yaml_reader.h>
 #include <boost/algorithm/string/join.hpp>
@@ -96,6 +98,9 @@ void Camera::ParseParameters(const YAML::Node &config) {
   publish_camera_info_  = reader.Get<bool>("publish_camera_info", true);
   publish_compressed_   = reader.Get<bool>("publish_compressed", true);
   jpeg_quality_         = reader.Get<int>("jpeg_quality", 75);
+  // a handful of chunked workers beats one task per column; more threads only
+  // add wakeup churn (the old default was hardware_concurrency()+1 per camera)
+  pool_size_            = reader.Get<int>("threads", 4);
 
   std::vector<std::string> layers =
       reader.GetList<std::string>("layers", {"all"}, -1, -1);
@@ -114,6 +119,9 @@ void Camera::ParseParameters(const YAML::Node &config) {
   }
   if (jpeg_quality_ < 1 || jpeg_quality_ > 100) {
     throw YAMLException("Camera jpeg_quality must be in [1, 100]");
+  }
+  if (pool_size_ < 1) {
+    throw YAMLException("Camera threads must be >= 1");
   }
 
   body_ = GetModel()->GetBody(body_name);
@@ -137,6 +145,7 @@ void Camera::ParseParameters(const YAML::Node &config) {
 
 void Camera::OnInitialize(const YAML::Node &config) {
   ParseParameters(config);
+  pool_ = std::make_unique<ThreadPool>(pool_size_);
 
   // Cache body→camera transform.
   {
@@ -259,35 +268,44 @@ void Camera::BeforePhysicsStep(const Timekeeper &timekeeper) {
     bool is_model;
     Rgb base_color;
   };
-  std::vector<std::future<Hit>> results(width_);
-  for (int col = 0; col < width_; ++col) {
-    float dx_c = ray_dir_cam_x_[col];
-    float dy_c = ray_dir_cam_y_[col];
-    float dx_w = c * dx_c - s * dy_c;
-    float dy_w = s * dx_c + c * dy_c;
-    b2Vec2 end(cam_origin.x + dx_w * static_cast<float>(range_),
-               cam_origin.y + dy_w * static_cast<float>(range_));
-    results[col] = pool_.enqueue([this, cam_origin, end, dx_w, dy_w]() {
-      CameraRayCb cb(this);
-      GetModel()->GetPhysicsWorld()->RayCast(&cb, cam_origin, end);
-      Hit h;
-      h.did_hit = cb.did_hit;
-      h.dist_raw = cb.did_hit ? cb.fraction * static_cast<float>(range_)
-                              : static_cast<float>(range_);
-      h.dir_world = b2Vec2(dx_w, dy_w);
-      h.normal = cb.normal;
-      h.is_model = cb.hit_is_model;
-      h.base_color = cb.hit_color;
-      return h;
-    });
+  // Raycast in a few contiguous chunks: per-column tasks cost about as much
+  // in queueing as the raycast itself. All chunks join before rendering.
+  std::vector<Hit> hits(width_);
+  const int num_chunks = std::max(1, std::min(pool_size_, width_));
+  std::vector<std::future<void>> chunk_jobs(num_chunks);
+  for (int chunk = 0; chunk < num_chunks; ++chunk) {
+    const int begin = chunk * width_ / num_chunks;
+    const int end_col = (chunk + 1) * width_ / num_chunks;
+    chunk_jobs[chunk] =
+        pool_->enqueue([this, &hits, begin, end_col, cam_origin, c, s]() {
+          for (int col = begin; col < end_col; ++col) {
+            float dx_c = ray_dir_cam_x_[col];
+            float dy_c = ray_dir_cam_y_[col];
+            float dx_w = c * dx_c - s * dy_c;
+            float dy_w = s * dx_c + c * dy_c;
+            b2Vec2 end(cam_origin.x + dx_w * static_cast<float>(range_),
+                       cam_origin.y + dy_w * static_cast<float>(range_));
+            CameraRayCb cb(this);
+            GetModel()->GetPhysicsWorld()->RayCast(&cb, cam_origin, end);
+            Hit &h = hits[col];
+            h.did_hit = cb.did_hit;
+            h.dist_raw = cb.did_hit ? cb.fraction * static_cast<float>(range_)
+                                    : static_cast<float>(range_);
+            h.dir_world = b2Vec2(dx_w, dy_w);
+            h.normal = cb.normal;
+            h.is_model = cb.hit_is_model;
+            h.base_color = cb.hit_color;
+          }
+        });
   }
+  for (auto &job : chunk_jobs) job.get();
 
   // Fill image column by column.
   cv::Vec3b sky(sky_color_.r, sky_color_.g, sky_color_.b);
   cv::Vec3b floor(floor_color_.r, floor_color_.g, floor_color_.b);
 
   for (int col = 0; col < width_; ++col) {
-    Hit h = results[col].get();
+    const Hit &h = hits[col];
     float dist = h.dist_raw * cos_correction_[col];
 
     float column_height =

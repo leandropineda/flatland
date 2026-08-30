@@ -106,6 +106,13 @@ public:
   void Update(Timekeeper & timekeeper);
 
   /**
+   * @brief Sync the RViz interactive markers with model poses and flush them.
+   * Called at the visualization rate (and only with show_viz) — the markers
+   * only matter to an attached RViz.
+   */
+  void UpdateInteractiveMarkers();
+
+  /**
    * @brief Box2D inherited begin contact
    * @param[in] contact Box2D contact information
    */

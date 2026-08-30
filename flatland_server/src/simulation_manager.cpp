@@ -133,6 +133,7 @@ void SimulationManager::Main()
     if (show_viz_ && update_viz) {
       world_->DebugVisualize(false);                        // no need to update layer
       DebugVisualization::Get(node_)->Publish(timekeeper);  // publish debug visualization
+      world_->UpdateInteractiveMarkers();
     }
 
     rclcpp::spin_some(node_);

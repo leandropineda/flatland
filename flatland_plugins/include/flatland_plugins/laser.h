@@ -51,6 +51,8 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <thirdparty/ThreadPool.h>
 
+#include <memory>
+
 #include <Eigen/Dense>
 #include <random>
 #include <rclcpp/rclcpp.hpp>
@@ -85,7 +87,8 @@ public:
   std::string frame_id_;  ///< laser frame id name
   bool broadcast_tf_;     ///< whether to broadcast laser origin w.r.t body
   uint16_t layers_bits_;  ///< for setting the layers where laser will function
-  ThreadPool pool_;       ///< ThreadPool for managing concurrent scan threads
+  std::unique_ptr<ThreadPool> pool_;  ///< workers for concurrent raycasts ("threads" param)
+  unsigned int pool_size_;            ///< number of worker threads
 
   /*
    * for setting reflectance layers. if the laser hits those layers,
@@ -111,15 +114,6 @@ public:
   geometry_msgs::msg::TransformStamped laser_tf_;                  ///< tf from body to laser frame
   UpdateTimer update_timer_;                                       ///< for controlling update rate
 
-  /**
-   * @brief Constructor to start the threadpool with N+1 threads
-   */
-  Laser() : pool_(std::thread::hardware_concurrency() + 1)
-  {
-    RCLCPP_INFO_STREAM(
-      rclcpp::get_logger("Laser Plugin"),
-      "Laser plugin loaded with " << (std::thread::hardware_concurrency() + 1) << " threads");
-  };
 
   /**
    * @brief Initialization for the plugin

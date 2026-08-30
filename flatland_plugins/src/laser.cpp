@@ -45,6 +45,8 @@
  */
 
 #include <flatland_plugins/laser.h>
+
+#include <algorithm>
 #include <flatland_server/collision_filter_registry.h>
 #include <flatland_server/exceptions.h>
 #include <flatland_server/model_plugin.h>
@@ -168,33 +170,38 @@ void Laser::ComputeLaserRanges()
   // Conver to Box2D data types
   b2Vec2 laser_origin_point(v_world_laser_origin_(0), v_world_laser_origin_(1));
 
-  // Results vector
-  std::vector<std::future<std::pair<double, double>>> results(laser_scan_.ranges.size());
-
-  // loop through the laser points and call the Box2D world raycast by
-  // enqueueing the callback
-  for (unsigned int i = 0; i < laser_scan_.ranges.size(); ++i) {
-    results[i] = pool_.enqueue([i, this, laser_origin_point] {  // Lambda function
-      b2Vec2 laser_point;
-      laser_point.x = m_world_laser_points_(0, i);
-      laser_point.y = m_world_laser_points_(1, i);
-      LaserCallback cb(this);
-
-      GetModel()->GetPhysicsWorld()->RayCast(&cb, laser_origin_point, laser_point);
-
-      if (!cb.did_hit_) {
-        return std::make_pair<double, double>(NAN, 0);
-      } else {
-        return std::make_pair<double, double>(cb.fraction_ * this->range_, cb.intensity_);
+  // Raycast in a few contiguous chunks: per-beam tasks cost about as much in
+  // queueing as the raycast itself. All chunks are joined before returning,
+  // and b2World::RayCast is read-only, so this is race-free.
+  const unsigned int num_beams = laser_scan_.ranges.size();
+  std::vector<std::pair<double, double>> hits(num_beams);
+  const unsigned int num_chunks = std::max(1u, std::min(pool_size_, num_beams));
+  std::vector<std::future<void>> chunks(num_chunks);
+  for (unsigned int c = 0; c < num_chunks; ++c) {
+    const unsigned int begin = c * num_beams / num_chunks;
+    const unsigned int end = (c + 1) * num_beams / num_chunks;
+    chunks[c] = pool_->enqueue([this, &hits, begin, end, laser_origin_point] {
+      for (unsigned int i = begin; i < end; ++i) {
+        b2Vec2 laser_point;
+        laser_point.x = m_world_laser_points_(0, i);
+        laser_point.y = m_world_laser_points_(1, i);
+        LaserCallback cb(this);
+        GetModel()->GetPhysicsWorld()->RayCast(&cb, laser_origin_point, laser_point);
+        if (!cb.did_hit_) {
+          hits[i] = std::make_pair(NAN, 0.0);
+        } else {
+          hits[i] = std::make_pair(cb.fraction_ * range_, cb.intensity_);
+        }
       }
     });
   }
+  for (auto & chunk : chunks) {
+    chunk.get();
+  }
 
-  // Unqueue all of the future'd results
-  for (unsigned int i = 0; i < laser_scan_.ranges.size(); ++i) {
-    auto result = results[i].get();  // Pull the result from the future
-    laser_scan_.ranges[i] = result.first + this->noise_gen_(this->rng_);
-    if (reflectance_layers_bits_) laser_scan_.intensities[i] = result.second;
+  for (unsigned int i = 0; i < num_beams; ++i) {
+    laser_scan_.ranges[i] = hits[i].first + this->noise_gen_(this->rng_);
+    if (reflectance_layers_bits_) laser_scan_.intensities[i] = hits[i].second;
   }
 }
 
@@ -235,6 +242,14 @@ void Laser::ParseParameters(const YAML::Node & config)
   origin_ = reader.GetPose("origin", Pose(0, 0, 0));
   range_ = reader.Get<double>("range");
   noise_std_dev_ = reader.Get<double>("noise_std_dev", 0);
+  // a handful of chunked workers beats one task per beam; more threads only
+  // add wakeup churn (the old default was hardware_concurrency()+1 per laser)
+  int threads = reader.Get<int>("threads", 4);
+  if (threads < 1) {
+    throw YAMLException("Laser threads must be >= 1");
+  }
+  pool_size_ = static_cast<unsigned int>(threads);
+  pool_ = std::make_unique<ThreadPool>(pool_size_);
 
   std::vector<std::string> layers = reader.GetList<std::string>("layers", {"all"}, -1, -1);
 
