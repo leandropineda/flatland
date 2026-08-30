@@ -34,9 +34,12 @@ struct CameraRayCb : public b2RayCastCallback {
   float fraction;
   b2Vec2 normal;
   uint16_t hit_category;
+  bool hit_is_model;
+  Rgb hit_color;
 
   explicit CameraRayCb(Camera *p)
-      : parent(p), did_hit(false), fraction(1.0f), normal(), hit_category(0) {}
+      : parent(p), did_hit(false), fraction(1.0f), normal(), hit_category(0),
+        hit_is_model(false), hit_color{255, 255, 255} {}
 
   float ReportFixture(b2Fixture *fix, const b2Vec2 & /*point*/,
                       const b2Vec2 &n, float f) override {
@@ -51,6 +54,19 @@ struct CameraRayCb : public b2RayCastCallback {
     fraction = f;
     normal = n;
     hit_category = cat;
+    // Model bodies (other robots) render in their own color and at
+    // model_height; layers (walls) stay white at wall_height.
+    hit_is_model = false;
+    hit_color = Rgb{255, 255, 255};
+    auto *body = static_cast<flatland_server::Body *>(fix->GetBody()->GetUserData());
+    if (body && body->GetEntity() &&
+        body->GetEntity()->Type() == flatland_server::Entity::MODEL) {
+      hit_is_model = true;
+      const auto &c = body->color_;
+      hit_color = Rgb{static_cast<uint8_t>(std::clamp(c.r, 0.0, 1.0) * 255.0),
+                      static_cast<uint8_t>(std::clamp(c.g, 0.0, 1.0) * 255.0),
+                      static_cast<uint8_t>(std::clamp(c.b, 0.0, 1.0) * 255.0)};
+    }
     return f;
   }
 };
@@ -68,6 +84,7 @@ void Camera::ParseParameters(const YAML::Node &config) {
   range_                = reader.Get<double>("range", 8.0);
   ignore_self_          = reader.Get<bool>("ignore_self", true);
   wall_height_          = reader.Get<double>("wall_height", 1.0);
+  model_height_         = reader.Get<double>("model_height", 0.4);
   eye_height_           = reader.Get<double>("eye_height", 0.5);
   shade_min_            = reader.Get<double>("shade_min", 0.15);
   shade_max_            = reader.Get<double>("shade_max", 1.0);
@@ -88,9 +105,9 @@ void Camera::ParseParameters(const YAML::Node &config) {
   if (width_ <= 0 || height_ <= 0) {
     throw YAMLException("Camera width and height must be > 0");
   }
-  if (update_rate_ <= 0 || range_ <= 0 || wall_height_ <= 0) {
+  if (update_rate_ <= 0 || range_ <= 0 || wall_height_ <= 0 || model_height_ <= 0) {
     throw YAMLException(
-        "Camera update_rate, range, and wall_height must be > 0");
+        "Camera update_rate, range, wall_height, and model_height must be > 0");
   }
   if (fov_deg_ <= 0 || fov_deg_ >= 180.0) {
     throw YAMLException("Camera fov_deg must be in (0, 180)");
@@ -239,6 +256,8 @@ void Camera::BeforePhysicsStep(const Timekeeper &timekeeper) {
     float dist_raw;
     b2Vec2 dir_world;
     b2Vec2 normal;
+    bool is_model;
+    Rgb base_color;
   };
   std::vector<std::future<Hit>> results(width_);
   for (int col = 0; col < width_; ++col) {
@@ -257,6 +276,8 @@ void Camera::BeforePhysicsStep(const Timekeeper &timekeeper) {
                               : static_cast<float>(range_);
       h.dir_world = b2Vec2(dx_w, dy_w);
       h.normal = cb.normal;
+      h.is_model = cb.hit_is_model;
+      h.base_color = cb.hit_color;
       return h;
     });
   }
@@ -269,9 +290,10 @@ void Camera::BeforePhysicsStep(const Timekeeper &timekeeper) {
     Hit h = results[col].get();
     float dist = h.dist_raw * cos_correction_[col];
 
+    float column_height =
+        static_cast<float>(h.is_model ? model_height_ : wall_height_);
     ColumnSpan span = h.did_hit
-        ? ColumnGeometry(dist, focal_y_,
-                         static_cast<float>(wall_height_),
+        ? ColumnGeometry(dist, focal_y_, column_height,
                          static_cast<float>(eye_height_), height_)
         : ColumnSpan{height_ / 2, height_ / 2};
 
@@ -284,7 +306,7 @@ void Camera::BeforePhysicsStep(const Timekeeper &timekeeper) {
       Rgb shaded = ShadeColor(
           dist, static_cast<float>(range_), n_dot,
           static_cast<float>(shade_min_), static_cast<float>(shade_max_),
-          static_cast<float>(directional_shading_), fog_color_);
+          static_cast<float>(directional_shading_), fog_color_, h.base_color);
       wall = cv::Vec3b(shaded.r, shaded.g, shaded.b);
     }
 

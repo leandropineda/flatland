@@ -48,6 +48,7 @@ class Camera : public flatland_server::ModelPlugin {
   uint16_t layers_bits_;
   bool ignore_self_;
   double wall_height_;
+  double model_height_;
   double eye_height_;
   double shade_min_;
   double shade_max_;

@@ -59,21 +59,22 @@ inline ColumnSpan ColumnGeometry(float dist, float focal_y, float wall_height,
 // 0=grazing. Only grazing-angle hits (`n_dot < 0.5`) are dimmed by `directional`.
 // Pass a negative `n_dot` to skip the grazing check entirely (e.g. degenerate
 // normals where the dot product is meaningless).
+// `base` is the surface color (white for walls; a model body's color when
+// the ray hit a robot), shaded by distance/angle and blended toward fog.
 inline Rgb ShadeColor(float dist, float range, float n_dot, float shade_min,
-                     float shade_max, float directional, Rgb fog) {
+                     float shade_max, float directional, Rgb fog,
+                     Rgb base = Rgb{255, 255, 255}) {
   float t = std::clamp(dist / range, 0.0f, 1.0f);
   float shade = shade_max + (shade_min - shade_max) * t;
   if (n_dot >= 0.0f && n_dot < 0.5f) {
     shade *= directional;
   }
-  uint8_t base = static_cast<uint8_t>(
-      std::clamp(255.0f * shade, 0.0f, 255.0f));
   float f = t * t;
-  auto blend = [f](uint8_t a, uint8_t b) -> uint8_t {
-    return static_cast<uint8_t>(
-        static_cast<float>(a) * (1.0f - f) + static_cast<float>(b) * f);
+  auto channel = [&](uint8_t c, uint8_t fog_c) -> uint8_t {
+    float shaded = std::clamp(static_cast<float>(c) * shade, 0.0f, 255.0f);
+    return static_cast<uint8_t>(shaded * (1.0f - f) + static_cast<float>(fog_c) * f);
   };
-  return Rgb{blend(base, fog.r), blend(base, fog.g), blend(base, fog.b)};
+  return Rgb{channel(base.r, fog.r), channel(base.g, fog.g), channel(base.b, fog.b)};
 }
 
 }  // namespace flatland_plugins

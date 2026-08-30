@@ -24,8 +24,10 @@ plugins:
     # nav2 <= jazzy publishes geometry_msgs/Twist; set true on kilted+ fleets
     # (or keep nav2's enable_stamped_cmd_vel: false, as fleet/nav2 does).
     stamped_cmd_vel: false
-    odom_pose_noise: [0.001, 0.001, 0.001]
-    odom_twist_noise: [0.001, 0.001, 0.001]
+    # variances; sigma ~1 cm pose jitter (resampled every publish). Enough to
+    # keep SLAM honest without the visible wobble of the old 3 cm setting.
+    odom_pose_noise: [0.0001, 0.0001, 0.0001]
+    odom_twist_noise: [0.0001, 0.0001, 0.0001]
 
   - type: Laser
     name: laser
