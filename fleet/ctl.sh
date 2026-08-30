@@ -15,19 +15,21 @@ cmd=${1:?usage: ctl.sh status|pause|resume|goal|mode|topics ...}
 
 case "$cmd" in
   pause|resume)
-    ns=${2:?robot namespace required}
+    ns=${2:?usage: ctl.sh pause|resume <robot>   (e.g. ctl.sh pause robot1)}
     val=$([ "$cmd" = pause ] && echo true || echo false)
     "${IN_SIM[@]}" ros2 service call "/$ns/pause" std_srvs/srv/SetBool "{data: $val}"
     ;;
   goal)
-    ns=${2:?robot namespace required}; x=${3:?x}; y=${4:?y}
+    usage="usage: ctl.sh goal <robot> <x> <y>   (e.g. ctl.sh goal robot1 3.0 0.5)"
+    ns=${2:?$usage}; x=${3:?$usage}; y=${4:?$usage}
     # from the robot's own container: the sim image has no nav2_msgs
     docker exec "fleet-$ns" /ros_entrypoint.sh ros2 action send_goal "/$ns/navigate_to_pose" \
       nav2_msgs/action/NavigateToPose \
       "{pose: {header: {frame_id: $ns/map}, pose: {position: {x: $x, y: $y}, orientation: {w: 1.0}}}}"
     ;;
   mode)
-    ns=${2:?robot namespace required}; mode=${3:?mode name}
+    usage="usage: ctl.sh mode <robot> <mode>   (e.g. ctl.sh mode robot1 cleaning)"
+    ns=${2:?$usage}; mode=${3:?$usage}
     "${IN_SIM[@]}" ros2 topic pub --once "/$ns/mode_cmd" std_msgs/msg/String "{data: $mode}"
     ;;
   status)
