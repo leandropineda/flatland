@@ -52,6 +52,7 @@ void Battery::OnInitialize(const YAML::Node &config) {
   std::string body_name = reader.Get<std::string>("body");
   std::string topic = reader.Get<std::string>("topic", "battery_state");
   double pub_rate = reader.Get<double>("pub_rate", 1.0);
+  std::string command_topic = reader.Get<std::string>("command_topic", "custom_command");
 
   capacity_ah_ = reader.Get<double>("capacity_ah", 5.0);
   voltage_full_ = reader.Get<double>("voltage_full", 12.6);
@@ -137,10 +138,10 @@ void Battery::OnInitialize(const YAML::Node &config) {
 
   // Topic command interface: std_msgs/String with a case-insensitive verb.
   // Same semantics as the two services above, intended for UI integrations
-  // (e.g. InOrbit) that send simple string commands. Namespaced per model so
-  // one command channel exists per robot.
+  // that send simple string commands. Namespaced per model so one command
+  // channel exists per robot.
   command_sub_ = node_->create_subscription<std_msgs::msg::String>(
-      GetModel()->NameSpaceTopic("inorbit/custom_command"), 10,
+      GetModel()->NameSpaceTopic(command_topic), 10,
       [this](const std_msgs::msg::String::SharedPtr msg) {
         std::string cmd = ToLower(msg->data);
         if (cmd == "charge") {

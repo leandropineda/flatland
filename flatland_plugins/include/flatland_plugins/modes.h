@@ -14,7 +14,7 @@ namespace flatland_plugins
 /**
  * Fake operating-mode state machine (e.g. idle / cleaning / transporting).
  * Publishes the current mode latched on `mode` and switches on `mode_cmd`
- * or on an `inorbit/custom_command` payload of the form "mode=<name>".
+ * or on a `custom_command` payload of the form "mode=<name>".
  * It only pretends: no behavior changes, just observable state.
  */
 class Modes : public flatland_server::ModelPlugin

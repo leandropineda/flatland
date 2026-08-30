@@ -16,6 +16,8 @@ void Modes::OnInitialize(const YAML::Node & config)
   mode_ = reader.Get<std::string>("initial_mode", "idle");
   std::string topic = reader.Get<std::string>("topic", "mode");
   std::string cmd_topic = reader.Get<std::string>("command_topic", "mode_cmd");
+  std::string custom_command_topic =
+    reader.Get<std::string>("custom_command_topic", "custom_command");
   reader.EnsureAccessedAllKeys();
 
   // latched so late joiners (dashboards, agents) see the current mode
@@ -28,7 +30,7 @@ void Modes::OnInitialize(const YAML::Node & config)
 
   // "mode=<name>" on the same command channel the Battery plugin listens to
   custom_command_sub_ = node_->create_subscription<std_msgs::msg::String>(
-    GetModel()->NameSpaceTopic("inorbit/custom_command"), 10,
+    GetModel()->NameSpaceTopic(custom_command_topic), 10,
     [this](const std_msgs::msg::String::SharedPtr msg) {
       if (msg->data.rfind("mode=", 0) == 0) {
         SetMode(msg->data.substr(5), "custom_command");

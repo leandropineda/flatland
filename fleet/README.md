@@ -91,5 +91,6 @@ The layout maps 1:1 — sim Deployment + one nav2 Deployment per robot (or a
 templated Helm chart). The only change is DDS discovery: pod networks do
 not route multicast, so add a Fast DDS discovery server or a
 `CYCLONEDDS_URI` unicast peer list pointing at the sim service; namespaces,
-frames and params all stay the same. Adding an InOrbit agent per robot is
-one more container per robot on the same domain.
+frames and params all stay the same. A fleet-management agent per robot is
+one more container on the same domain — deployable as a compose overlay
+that joins this stack's network, without touching this repo.
