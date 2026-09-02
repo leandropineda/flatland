@@ -25,6 +25,13 @@ docker compose up --build -d     # first build ~10 min
 ./smoke.sh                       # end-to-end checks incl. nav + pause/resume
 ```
 
+CI also publishes ready-made images per distro (no clone needed):
+`ghcr.io/leandropineda/flatland-sim`, `.../flatland-fleet-nav2` and
+`.../flatland-fleet-rviz`, tagged `humble|jazzy|kilted|lyrical` (plus
+`<distro>-<sha>` pins). They contain the engine and the nav2 launch/params;
+worlds and models are mounted at runtime, so a downstream compose file plus
+a `sim/` config dir is a complete deployment.
+
 ## Drive it
 
 ```bash
