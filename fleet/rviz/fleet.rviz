@@ -49,7 +49,7 @@ Visualization Manager:
         Durability Policy: Volatile
         Reliability Policy: Reliable
     - Class: rviz_default_plugins/Map
-      Name: robot1 SLAM map
+      Name: robot1 map
       Enabled: true
       Color Scheme: map
       Alpha: 0.4
@@ -59,7 +59,7 @@ Visualization Manager:
         Durability Policy: Transient Local
         Reliability Policy: Reliable
     - Class: rviz_default_plugins/Map
-      Name: robot2 SLAM map
+      Name: robot2 map
       Enabled: false
       Color Scheme: map
       Alpha: 0.4
@@ -69,7 +69,7 @@ Visualization Manager:
         Durability Policy: Transient Local
         Reliability Policy: Reliable
     - Class: rviz_default_plugins/Map
-      Name: robot3 SLAM map
+      Name: robot3 map
       Enabled: false
       Color Scheme: map
       Alpha: 0.4

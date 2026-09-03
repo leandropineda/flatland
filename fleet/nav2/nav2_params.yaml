@@ -1,7 +1,36 @@
-# Per-robot nav2 + slam_toolbox parameters. ${NS} is replaced with the robot
-# namespace (e.g. robot1) by robot.launch.py. Topics stay relative so the node
-# namespace resolves them (/robot1/scan, ...); TF frame names carry the prefix
-# explicitly because ROS2 has no tf_prefix.
+# Per-robot nav2 + localization parameters. robot.launch.py replaces ${NS}
+# with the robot namespace (e.g. robot1) and ${GLOBAL_FRAME} with `map`
+# (amcl mode, shared known map) or `robotN/map` (slam mode). Topics stay
+# relative so the node namespace resolves them (/robot1/scan, ...); TF frame
+# names carry the prefix explicitly because ROS2 has no tf_prefix.
+
+# amcl mode only (launch injects yaml_filename = <world_dir>/map.yaml and the
+# robot's initial_pose from the world file)
+map_server:
+  ros__parameters:
+    use_sim_time: true
+
+amcl:
+  ros__parameters:
+    use_sim_time: true
+    base_frame_id: ${NS}/base_link
+    odom_frame_id: ${NS}/odom
+    global_frame_id: map
+    scan_topic: scan
+    map_topic: map
+    robot_model_type: "nav2_amcl::DifferentialMotionModel"
+    set_initial_pose: true
+    laser_max_range: 8.0
+    max_particles: 1000
+    min_particles: 300
+    alpha1: 0.1
+    alpha2: 0.1
+    alpha3: 0.1
+    alpha4: 0.1
+    tf_broadcast: true
+    transform_tolerance: 0.5
+
+# slam mode only
 
 slam_toolbox:
   ros__parameters:
@@ -94,7 +123,7 @@ behavior_server:
     global_footprint_topic: global_costmap/published_footprint
     cycle_frequency: 10.0
     local_frame: ${NS}/odom
-    global_frame: ${NS}/map
+    global_frame: ${GLOBAL_FRAME}
     robot_base_frame: ${NS}/base_link
     behavior_plugins: ["spin", "backup", "wait"]
     spin:
@@ -107,7 +136,7 @@ behavior_server:
 bt_navigator:
   ros__parameters:
     use_sim_time: true
-    global_frame: ${NS}/map
+    global_frame: ${GLOBAL_FRAME}
     robot_base_frame: ${NS}/base_link
     odom_topic: odom
     bt_loop_duration: 10
@@ -152,7 +181,7 @@ global_costmap:
       use_sim_time: true
       update_frequency: 1.0
       publish_frequency: 1.0
-      global_frame: ${NS}/map
+      global_frame: ${GLOBAL_FRAME}
       robot_base_frame: ${NS}/base_link
       robot_radius: 0.22
       resolution: 0.05

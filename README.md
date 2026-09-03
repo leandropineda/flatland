@@ -30,8 +30,9 @@ What this branch adds over upstream `ros2-jazzy`:
 ## Simulated fleet
 
 [`fleet/`](fleet/) runs a complete multi-robot setup with docker compose:
-one sim container + one nav2+slam_toolbox container per robot, one shared
-DDS domain, pause/resume and camera streaming out of the box. See
+one sim container + one nav2 container per robot (AMCL on the world's own
+map by default, SLAM optional), selectable worlds, one shared DDS domain,
+pause/resume and camera streaming out of the box. See
 [fleet/README.md](fleet/README.md).
 
 ## Native build

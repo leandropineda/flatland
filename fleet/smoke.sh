@@ -6,7 +6,9 @@ set -uo pipefail
 
 E=(docker exec fleet-sim /entrypoint.sh)
 FAIL=0
-ROBOTS=$(sed -n 's/.*namespace: *//p' "$(dirname "$0")/sim/world.yaml")
+ROBOTS=$(sed -n 's/.*namespace: *//p' "$(dirname "$0")/sim/worlds/${WORLD:-office}/world.yaml")
+# goal/TF frame: shared map (amcl, default) or per-robot map (slam)
+frame_for() { [ "${LOCALIZATION:-amcl}" = slam ] && echo "$1/map" || echo map; }
 
 check() { # check <label> <cmd...>
   local label=$1; shift
@@ -33,8 +35,8 @@ for ns in $ROBOTS; do
     "${E[*]} bash -c 'timeout 10 ros2 lifecycle get /$ns/bt_navigator' | grep -q active"
   check "$ns scan ~5 Hz" hz_at_least "/$ns/scan" 5 4
   check "$ns odom ~20 Hz" hz_at_least "/$ns/odom" 20 3
-  check "$ns TF map->base_link" bash -c \
-    "${E[*]} bash -c 'timeout 15 ros2 run tf2_ros tf2_echo $ns/map $ns/base_link 2>&1 | grep -m1 -q Translation'"
+  check "$ns TF $(frame_for $ns)->base_link" bash -c \
+    "${E[*]} bash -c 'timeout 15 ros2 run tf2_ros tf2_echo $(frame_for $ns) $ns/base_link 2>&1 | grep -m1 -q Translation'"
   check "$ns camera streams on demand" bash -c \
     "${E[*]} bash -c 'timeout 10 ros2 topic echo --once /$ns/image_raw --field width' | grep -q 320"
   check "$ns battery_state" bash -c \
@@ -48,13 +50,21 @@ first=$(echo "$ROBOTS" | head -1)
 R=(docker exec "fleet-$first" /ros_entrypoint.sh)
 echo "== navigation + pause/resume ($first)"
 
-# short goal ~1m ahead of spawn; world.yaml spawns robot1 at (2,1) facing +x
+# Goals 1 m / 3 m ahead of the robot's spawn (all worlds spawn robot1 facing
+# +x with free space ahead). amcl mode: map frame == world, so offset the
+# spawn pose; slam mode: the robot's map frame starts at its spawn, so the
+# offsets are the goal directly.
+spawn=$(sed -n "/namespace: $first/,/pose:/s/.*pose: \[\([^,]*\), \([^,]*\),.*/\1 \2/p" \
+  "$(dirname "$0")/sim/worlds/${WORLD:-office}/world.yaml" | head -1)
+if [ "${LOCALIZATION:-amcl}" = slam ]; then sx=0; sy=0; else read -r sx sy <<<"$spawn"; fi
+gx1=$(echo "$sx + 1.0" | bc); gx2=$(echo "$sx + 3.0" | bc)
+
 check "$first accepts and reaches a goal" bash -c \
-  "${R[*]} bash -c 'timeout 120 ros2 action send_goal /$first/navigate_to_pose nav2_msgs/action/NavigateToPose \"{pose: {header: {frame_id: $first/map}, pose: {position: {x: 1.0, y: 0.0}, orientation: {w: 1.0}}}}\"' | grep -q 'SUCCEEDED'"
+  "${R[*]} bash -c 'timeout 120 ros2 action send_goal /$first/navigate_to_pose nav2_msgs/action/NavigateToPose \"{pose: {header: {frame_id: $(frame_for $first)}, pose: {position: {x: $gx1, y: $sy}, orientation: {w: 1.0}}}}\"' | grep -q 'SUCCEEDED'"
 
 # pause mid-goal: send a longer goal in background, pause, confirm zero motion,
 # resume, confirm the same goal still completes.
-"${R[@]}" bash -c "nohup timeout 180 ros2 action send_goal /$first/navigate_to_pose nav2_msgs/action/NavigateToPose '{pose: {header: {frame_id: $first/map}, pose: {position: {x: 3.0, y: 0.0}, orientation: {w: 1.0}}}}' > /tmp/goal.log 2>&1 &"
+"${R[@]}" bash -c "nohup timeout 180 ros2 action send_goal /$first/navigate_to_pose nav2_msgs/action/NavigateToPose '{pose: {header: {frame_id: $(frame_for $first)}, pose: {position: {x: $gx2, y: $sy}, orientation: {w: 1.0}}}}' > /tmp/goal.log 2>&1 &"
 sleep 4
 check "$first pause acknowledged" bash -c \
   "${E[*]} ros2 service call /$first/pause std_srvs/srv/SetBool '{data: true}' | grep -q 'success=True'"

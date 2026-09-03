@@ -1,0 +1,23 @@
+# Warehouse world (50 x 25 m): 4 shelf rows, 4 m aisles.
+# Robots: unique name/namespace + a free-space pose; the shared model is one
+# level up. Selected via WORLD=warehouse in the compose files.
+properties: {}
+
+layers:
+  - name: "2d"
+    map: "map.yaml"
+    color: [0.4, 0.4, 0.4, 1]
+
+models:
+  - name: robot1
+    namespace: robot1
+    pose: [3.0, 2.5, 0.0]
+    model: "../../turtlebot.model.yaml"
+  - name: robot2
+    namespace: robot2
+    pose: [3.0, 12.5, 0.0]
+    model: "../../turtlebot.model.yaml"
+  - name: robot3
+    namespace: robot3
+    pose: [3.0, 22.5, 0.0]
+    model: "../../turtlebot.model.yaml"

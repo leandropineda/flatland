@@ -22,10 +22,12 @@ case "$cmd" in
   goal)
     usage="usage: ctl.sh goal <robot> <x> <y>   (e.g. ctl.sh goal robot1 3.0 0.5)"
     ns=${2:?$usage}; x=${3:?$usage}; y=${4:?$usage}
+    # amcl mode (default): shared global map frame; slam: per-robot map frame
+    frame=$([ "${LOCALIZATION:-amcl}" = slam ] && echo "$ns/map" || echo map)
     # from the robot's own container: the sim image has no nav2_msgs
     docker exec "fleet-$ns" /ros_entrypoint.sh ros2 action send_goal "/$ns/navigate_to_pose" \
       nav2_msgs/action/NavigateToPose \
-      "{pose: {header: {frame_id: $ns/map}, pose: {position: {x: $x, y: $y}, orientation: {w: 1.0}}}}"
+      "{pose: {header: {frame_id: $frame}, pose: {position: {x: $x, y: $y}, orientation: {w: 1.0}}}}"
     ;;
   mode)
     usage="usage: ctl.sh mode <robot> <mode>   (e.g. ctl.sh mode robot1 cleaning)"
@@ -33,7 +35,7 @@ case "$cmd" in
     "${IN_SIM[@]}" ros2 topic pub --once "/$ns/mode_cmd" std_msgs/msg/String "{data: $mode}"
     ;;
   status)
-    robots=$(sed -n 's/.*namespace: *//p' "$(dirname "$0")/sim/world.yaml")
+    robots=$(sed -n 's/.*namespace: *//p' "$(dirname "$0")/sim/worlds/${WORLD:-office}/world.yaml")
     for ns in $robots; do
       echo "== $ns"
       "${IN_SIM[@]}" bash -c "timeout 3 ros2 topic echo --once /$ns/mode --field data 2>/dev/null | head -1 | sed 's/^/  mode: /' || echo '  mode: (no answer)'"

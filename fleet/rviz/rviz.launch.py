@@ -16,7 +16,10 @@ import yaml
 from launch import LaunchDescription
 from launch_ros.actions import Node
 
-WORLD_YAML = os.environ.get('FLEET_WORLD', '/fleet/sim/world.yaml')
+WORLD_YAML = os.environ.get(
+    'FLEET_WORLD',
+    f"/fleet/sim/worlds/{os.environ.get('WORLD', 'office')}/world.yaml")
+LOCALIZATION = os.environ.get('LOCALIZATION', 'amcl')
 
 
 def generate_launch_description():
@@ -24,6 +27,8 @@ def generate_launch_description():
         world = yaml.safe_load(f)
     namespaces = [m['namespace'] for m in world.get('models', []) if m.get('namespace')]
 
+    # In slam mode each robot owns robotN/map; stitch them onto one world
+    # frame for a single view. In amcl mode everything already shares `map`.
     nodes = [
         Node(
             package='tf2_ros',
@@ -32,7 +37,7 @@ def generate_launch_description():
             arguments=['--frame-id', 'map', '--child-frame-id', f'{ns}/map'],
             parameters=[{'use_sim_time': True}],
         )
-        for ns in namespaces
+        for ns in (namespaces if LOCALIZATION == 'slam' else [])
     ]
     nodes.append(Node(
         package='rviz2',

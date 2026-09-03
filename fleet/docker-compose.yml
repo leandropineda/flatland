@@ -1,11 +1,13 @@
-# Simulated fleet: one flatland world, one nav2+SLAM container per robot.
+# Simulated fleet: one flatland world, one nav2 container per robot.
+# WORLD=office|warehouse picks the world; LOCALIZATION=amcl (default, known
+# map, shared `map` frame) or slam (each robot maps from scratch).
 # Everything shares one DDS domain on the default compose network; robots are
 # separated by ROS namespace (topics) and frame prefix (TF), not by domain.
 #
 #   docker compose up --build -d
 #   ./ctl.sh status
 #
-# Add a robot: add a models: entry in sim/world.yaml + one service below.
+# Add a robot: add a models: entry in sim/worlds/<WORLD>/world.yaml + one service below.
 
 x-ros-env: &ros-env
   # CycloneDDS: no shared-memory transport, so containers talk plain UDP over
@@ -23,6 +25,8 @@ x-robot: &robot
       ROS_DISTRO: ${ROS_DISTRO:-jazzy}
   image: fleet-nav2:${ROS_DISTRO:-jazzy}
   environment: *ros-env
+  volumes:
+    - ./sim:/fleet/sim:ro   # world map doubles as the AMCL localization map
   depends_on:
     - sim
   restart: unless-stopped
@@ -41,7 +45,7 @@ services:
       - ./sim:/fleet/sim:ro
     command: >
       ros2 run flatland_server flatland_server --ros-args
-      -p world_path:=/fleet/sim/world.yaml
+      -p world_path:=/fleet/sim/worlds/${WORLD:-office}/world.yaml
       -p update_rate:=50.0
       -p step_size:=0.02
       -p show_viz:=${SHOW_VIZ:-true}
@@ -51,17 +55,26 @@ services:
   robot1:
     <<: *robot
     container_name: fleet-robot1
-    command: ros2 launch /fleet/nav2/robot.launch.py namespace:=robot1
+    command: >
+      ros2 launch /fleet/nav2/robot.launch.py namespace:=robot1
+      localization:=${LOCALIZATION:-amcl}
+      world_dir:=/fleet/sim/worlds/${WORLD:-office}
 
   robot2:
     <<: *robot
     container_name: fleet-robot2
-    command: ros2 launch /fleet/nav2/robot.launch.py namespace:=robot2
+    command: >
+      ros2 launch /fleet/nav2/robot.launch.py namespace:=robot2
+      localization:=${LOCALIZATION:-amcl}
+      world_dir:=/fleet/sim/worlds/${WORLD:-office}
 
   robot3:
     <<: *robot
     container_name: fleet-robot3
-    command: ros2 launch /fleet/nav2/robot.launch.py namespace:=robot3
+    command: >
+      ros2 launch /fleet/nav2/robot.launch.py namespace:=robot3
+      localization:=${LOCALIZATION:-amcl}
+      world_dir:=/fleet/sim/worlds/${WORLD:-office}
 
   # Optional world view: docker compose --profile viz up -d
   # Needs an X display on the host: xhost +local:docker
@@ -78,6 +91,8 @@ services:
       <<: *ros-env
       DISPLAY: ${DISPLAY:-:0}
       QT_X11_NO_MITSHM: "1"
+      WORLD: ${WORLD:-office}
+      LOCALIZATION: ${LOCALIZATION:-amcl}
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - ./sim:/fleet/sim:ro
