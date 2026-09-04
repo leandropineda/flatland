@@ -80,6 +80,10 @@ void Camera::ParseParameters(const YAML::Node &config) {
   frame_id_             = reader.Get<std::string>("frame", "camera_link");
   origin_               = reader.GetPose("origin", Pose(0, 0, 0));
   update_rate_          = reader.Get<double>("update_rate", 10.0);
+  // lazy (default): render only while a topic has a subscriber, to save CPU.
+  // Set false when subscriber discovery is unreliable (e.g. a Fast DDS
+  // discovery server relays it intermittently) so the feed never stalls.
+  lazy_                 = reader.Get<bool>("lazy", true);
   width_                = reader.Get<int>("width", 320);
   height_               = reader.Get<int>("height", 240);
   fov_deg_              = reader.Get<double>("fov_deg", 90.0);
@@ -237,7 +241,7 @@ void Camera::BeforePhysicsStep(const Timekeeper &timekeeper) {
   size_t subs = image_pub_->get_subscription_count();
   if (publish_camera_info_) subs += camera_info_pub_->get_subscription_count();
   if (publish_compressed_)  subs += compressed_pub_->get_subscription_count();
-  if (subs == 0) {
+  if (lazy_ && subs == 0) {
     if (broadcast_tf_) {
       camera_tf_.header.stamp = timekeeper.GetSimTime();
       tf_broadcaster_->sendTransform(camera_tf_);

@@ -50,7 +50,9 @@ plugins:
     topic: image_raw
     frame: camera_link
     broadcast_tf: true
-    update_rate: 10.0   # renders only while someone subscribes
+    update_rate: 10.0
+    lazy: false         # always render: a Fast DDS discovery server relays
+                        # subscriber discovery too flakily for lazy rendering
     width: 320
     height: 240
     fov_deg: 90

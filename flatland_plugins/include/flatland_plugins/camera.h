@@ -58,6 +58,7 @@ class Camera : public flatland_server::ModelPlugin {
   bool broadcast_tf_;
   bool publish_camera_info_;
   bool publish_compressed_;
+  bool lazy_;
   int jpeg_quality_;
 
   // Runtime
