@@ -92,14 +92,18 @@ controller_server:
       trans_stopped_velocity: 0.25
       short_circuit_trajectory_evaluation: true
       stateful: true
-      critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
-      BaseObstacle.scale: 0.02
-      PathAlign.scale: 32.0
-      PathAlign.forward_point_distance: 0.1
-      GoalAlign.scale: 24.0
+      critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "ObstacleFootprint", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
+      # BaseObstacle at 0.02 barely penalised wall proximity, so DWB hugged
+      # the corner-cutting global path (robot went "super close to the wall").
+      # Weight obstacle clearance up and path-hugging down for real clearance.
+      BaseObstacle.scale: 0.5
+      ObstacleFootprint.scale: 0.2
+      PathAlign.scale: 16.0
+      PathAlign.forward_point_distance: 0.15
+      GoalAlign.scale: 12.0
       GoalAlign.forward_point_distance: 0.1
-      PathDist.scale: 32.0
-      GoalDist.scale: 24.0
+      PathDist.scale: 24.0
+      GoalDist.scale: 20.0
       RotateToGoal.scale: 32.0
       RotateToGoal.slowing_factor: 5.0
       RotateToGoal.lookahead_time: -1.0
