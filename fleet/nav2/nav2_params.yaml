@@ -51,7 +51,7 @@ slam_toolbox:
 controller_server:
   ros__parameters:
     use_sim_time: true
-    controller_frequency: 10.0
+    controller_frequency: 15.0   # re-decide more often -> smoother corners
     # keep plain Twist on every distro (kilted+ defaults to TwistStamped)
     enable_stamped_cmd_vel: false
     min_x_velocity_threshold: 0.001
@@ -72,10 +72,10 @@ controller_server:
       yaw_goal_tolerance: 0.25
     FollowPath:
       plugin: "dwb_core::DWBLocalPlanner"
-      min_vel_x: -0.13   # allow reversing to back out of tight corners
-      max_vel_x: 0.26
-      min_speed_xy: -0.13
-      max_speed_xy: 0.26
+      min_vel_x: 0.0     # forward only (no reverse)
+      max_vel_x: 0.4
+      min_speed_xy: 0.0
+      max_speed_xy: 0.4
       min_speed_theta: 0.0
       max_vel_theta: 1.82
       acc_lim_x: 2.5
@@ -83,7 +83,7 @@ controller_server:
       decel_lim_x: -2.5
       decel_lim_theta: -3.2
       vx_samples: 20
-      vtheta_samples: 20
+      vtheta_samples: 40
       sim_time: 1.7
       linear_granularity: 0.05
       angular_granularity: 0.025
@@ -96,7 +96,7 @@ controller_server:
       # BaseObstacle at 0.02 barely penalised wall proximity, so DWB hugged
       # the corner-cutting global path (robot went "super close to the wall").
       # Weight obstacle clearance up and path-hugging down for real clearance.
-      BaseObstacle.scale: 0.5
+      BaseObstacle.scale: 0.8
       ObstacleFootprint.scale: 0.2
       PathAlign.scale: 16.0
       PathAlign.forward_point_distance: 0.15
@@ -131,6 +131,8 @@ behavior_server:
     local_frame: ${NS}/odom
     global_frame: ${GLOBAL_FRAME}
     robot_base_frame: ${NS}/base_link
+    # normal driving is forward-only (DWB min_vel_x 0); backup is recovery
+    # ONLY — a short reverse when a robot is genuinely stuck
     behavior_plugins: ["spin", "backup", "wait"]
     spin:
       plugin: "nav2_behaviors::Spin"
@@ -152,13 +154,13 @@ local_costmap:
   local_costmap:
     ros__parameters:
       use_sim_time: true
-      update_frequency: 5.0
-      publish_frequency: 2.0
+      update_frequency: 10.0    # react to nearing walls sooner
+      publish_frequency: 5.0
       global_frame: ${NS}/odom
       robot_base_frame: ${NS}/base_link
       rolling_window: true
-      width: 4
-      height: 4
+      width: 6                  # more lookahead to round a corner smoothly
+      height: 6
       resolution: 0.05
       robot_radius: 0.22
       plugins: ["obstacle_layer", "inflation_layer"]
@@ -178,8 +180,8 @@ local_costmap:
           obstacle_min_range: 0.0
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        cost_scaling_factor: 3.0
-        inflation_radius: 0.55
+        cost_scaling_factor: 2.5
+        inflation_radius: 0.7
 
 global_costmap:
   global_costmap:
@@ -216,5 +218,5 @@ global_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         # wide, gentle: global plans hug aisle centers instead of shelf corners
-        cost_scaling_factor: 2.0
-        inflation_radius: 0.75
+        cost_scaling_factor: 1.6
+        inflation_radius: 0.9
