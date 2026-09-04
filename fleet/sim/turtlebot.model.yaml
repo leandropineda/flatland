@@ -70,4 +70,5 @@ plugins:
     capacity_ah: 5.0
     initial_charge: 0.9
     charging_zones:
-      - {x: 1.0, y: 1.0, radius: 0.6, name: "Charger A"}
+      # inside the dock1 model of the world; approach faces -x into the U
+      - {x: 1.0, y: 1.0, radius: 0.6, yaw: 3.14159265, name: "Charger A"}

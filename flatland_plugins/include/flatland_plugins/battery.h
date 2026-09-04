@@ -18,6 +18,7 @@ namespace flatland_plugins {
 
 struct ChargingZone {
   double x, y, radius;
+  double yaw;  ///< approach heading for the dock goal
   std::string name;
 };
 

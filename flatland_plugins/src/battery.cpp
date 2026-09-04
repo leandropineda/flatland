@@ -71,6 +71,7 @@ void Battery::OnInitialize(const YAML::Node &config) {
       zone.x = zone_reader.Get<double>("x");
       zone.y = zone_reader.Get<double>("y");
       zone.radius = zone_reader.Get<double>("radius", 0.5);
+      zone.yaw = zone_reader.Get<double>("yaw", 0.0);
       zone.name = zone_reader.Get<std::string>("name", "charger");
       zone_reader.EnsureAccessedAllKeys();
       charging_zones_.push_back(zone);
@@ -251,7 +252,9 @@ bool Battery::DispatchDock(const std::string &id_or_empty) {
   goal.pose.position.x = target->x;
   goal.pose.position.y = target->y;
   goal.pose.position.z = 0.0;
-  goal.pose.orientation.w = 1.0;
+  // precise approach pose: face the zone's configured docking heading
+  goal.pose.orientation.z = std::sin(target->yaw / 2.0);
+  goal.pose.orientation.w = std::cos(target->yaw / 2.0);
   goal_pub_->publish(goal);
 
   RCLCPP_INFO(node_->get_logger(),

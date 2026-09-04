@@ -1,0 +1,22 @@
+# Docking station: a shallow U open toward +x. Place with the world-file
+# pose at the charging zone; robots approach heading -x (zone yaw: pi).
+bodies:
+  - name: dock
+    pose: [0, 0, 0]
+    type: static
+    color: [0.9, 0.6, 0.1, 1]
+    footprints:
+      - type: polygon   # back wall
+        points: [[-0.45, -0.45], [-0.35, -0.45], [-0.35, 0.45], [-0.45, 0.45]]
+        density: 1.0
+        layers: ["2d"]
+      - type: polygon   # south stub
+        points: [[-0.35, -0.45], [0.15, -0.45], [0.15, -0.35], [-0.35, -0.35]]
+        density: 1.0
+        layers: ["2d"]
+      - type: polygon   # north stub
+        points: [[-0.35, 0.35], [0.15, 0.35], [0.15, 0.45], [-0.35, 0.45]]
+        density: 1.0
+        layers: ["2d"]
+
+plugins: []

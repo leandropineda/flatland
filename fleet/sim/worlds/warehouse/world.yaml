@@ -9,6 +9,9 @@ layers:
     color: [0.4, 0.4, 0.4, 1]
 
 models:
+  - name: dock1
+    pose: [1.0, 1.0, 0.0]
+    model: "../../dock.model.yaml"
   - name: robot1
     namespace: robot1
     pose: [3.0, 2.5, 0.0]
