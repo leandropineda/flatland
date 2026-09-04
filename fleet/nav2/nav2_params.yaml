@@ -148,7 +148,13 @@ bt_navigator:
     robot_base_frame: ${NS}/base_link
     odom_topic: odom
     bt_loop_duration: 10
-    default_server_timeout: 20
+    # Timeout for a BT action node to get its goal request acknowledged by the
+    # server. The stock 20ms assumes same-process, unloaded localhost; under
+    # Kubernetes (DDS via a discovery server + a shared, CPU-contended node) the
+    # round-trip intermittently exceeds it, so a goal aborts with "Timed out
+    # while waiting for action server to acknowledge goal request". 250ms is
+    # still imperceptible but absorbs the latency spikes.
+    default_server_timeout: 250
 
 local_costmap:
   local_costmap:
