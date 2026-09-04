@@ -11,9 +11,9 @@ slam_toolbox mapping from scratch (own `robotN/map` frame per robot).
 
 Everything — localization, planner, controller, behaviors, bt_navigator,
 lifecycle manager — loads as components into a single
-component_container_isolated (one process per robot; the duplicated DDS
-receive/clock machinery of one-process-per-node was a third of each robot's
-idle CPU).
+an isolated component container using the EventsExecutor (one process per
+robot; see fleet/container/ — waitset executors burned idle CPU waking on
+the 50 Hz sim clock).
 
 Deliberately not nav2_bringup: that remaps /tf into the namespace, while
 flatland broadcasts every robot's TF on the global /tf. Frames are
@@ -76,9 +76,14 @@ def setup(context, *args, **kwargs):
         # nest under the namespace so the sections match /<ns>/<node> nodes
         yaml.safe_dump({ns: params}, f)
 
+    container_kind = LaunchConfiguration('container').perform(context)
+    pkg, exe = {
+        'events': ('fleet_container', 'events_container'),
+        'isolated': ('rclcpp_components', 'component_container_isolated'),
+    }[container_kind]
     container = Node(
-        package='rclcpp_components',
-        executable='component_container_isolated',
+        package=pkg,
+        executable=exe,
         name='nav2_container',
         namespace=ns,
         output='screen',
@@ -165,5 +170,8 @@ def generate_launch_description():
                               description='amcl (known map, shared frame) or slam'),
         DeclareLaunchArgument('world_dir', default_value='/fleet/sim/worlds/office',
                               description='world dir with world.yaml + map.yaml'),
+        DeclareLaunchArgument('container', default_value='events',
+                              description='events (EventsExecutor, lower idle '
+                                          'CPU) or isolated (stock waitset)'),
         OpaqueFunction(function=setup),
     ])

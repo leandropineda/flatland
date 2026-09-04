@@ -24,6 +24,10 @@ x-robot: &robot
     args:
       ROS_DISTRO: ${ROS_DISTRO:-jazzy}
   image: fleet-nav2:${ROS_DISTRO:-jazzy}
+  # ROS handles SIGINT (Ctrl-C), not docker's default SIGTERM; nav2's
+  # composed teardown can also exceed the default 10 s grace
+  stop_signal: SIGINT
+  stop_grace_period: 30s
   environment: *ros-env
   volumes:
     - ./sim:/fleet/sim:ro   # world map doubles as the AMCL localization map
@@ -40,6 +44,8 @@ services:
         ROS_DISTRO: ${ROS_DISTRO:-jazzy}
     image: flatland:${ROS_DISTRO:-jazzy}
     container_name: fleet-sim
+    stop_signal: SIGINT
+    stop_grace_period: 20s
     environment: *ros-env
     volumes:
       - ./sim:/fleet/sim:ro
@@ -59,6 +65,7 @@ services:
       ros2 launch /fleet/nav2/robot.launch.py namespace:=robot1
       localization:=${LOCALIZATION:-amcl}
       world_dir:=/fleet/sim/worlds/${WORLD:-office}
+      container:=${CONTAINER:-events}
 
   robot2:
     <<: *robot
@@ -67,6 +74,7 @@ services:
       ros2 launch /fleet/nav2/robot.launch.py namespace:=robot2
       localization:=${LOCALIZATION:-amcl}
       world_dir:=/fleet/sim/worlds/${WORLD:-office}
+      container:=${CONTAINER:-events}
 
   robot3:
     <<: *robot
@@ -75,6 +83,7 @@ services:
       ros2 launch /fleet/nav2/robot.launch.py namespace:=robot3
       localization:=${LOCALIZATION:-amcl}
       world_dir:=/fleet/sim/worlds/${WORLD:-office}
+      container:=${CONTAINER:-events}
 
   # Optional world view: docker compose --profile viz up -d
   # Needs an X display on the host: xhost +local:docker

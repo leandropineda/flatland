@@ -30,7 +30,7 @@
     <description>Raycasted 2.5D camera publishing sensor_msgs/Image (+compressed JPEG)</description>
   </class>
   <class type="flatland_plugins::Modes" base_class_type="flatland_server::ModelPlugin">
-    <description>Fake operating-mode state machine (latched mode topic + mode_cmd)</description>
+    <description>Operating mode, latched: auto idle/navigating/charging + manual overrides</description>
   </class>
   <class type="flatland_plugins::RandomWall" base_class_type="flatland_server::WorldPlugin">
     <description>Add random walls into the world</description>

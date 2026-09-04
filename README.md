@@ -19,9 +19,10 @@ What this branch adds over upstream `ros2-jazzy`:
   `BatteryState`, dock command. **Modes plugin**: fake operating modes
   (idle/cleaning/...) as latched state. (Camera/battery imported from
   [OpenRobOps/sim-flatland](https://github.com/OpenRobOps/sim-flatland).)
-* **Per-robot movement pause**: `/robotN/pause` (std_srvs/SetBool) pins the
-  robot while the nav stack keeps its goal — made for traffic-manager
-  testing. World-level `/pause`, `/resume`, `/toggle_pause` still exist.
+* **Per-robot movement pause** (std_srvs/SetBool, DiffDrive `pause_service`
+  param, default `pause_motion`): pins the robot while the nav stack keeps
+  its goal — made for traffic-manager testing. World-level `/pause`,
+  `/resume`, `/toggle_pause` still exist.
 * **DiffDrive/TricycleDrive `stamped_cmd_vel` param**: `Twist` (default,
   nav2 ≤ jazzy) or `TwistStamped` (nav2 kilted+) — humble compatibility.
 * `docker/Dockerfile` builds any distro:

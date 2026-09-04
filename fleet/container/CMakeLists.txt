@@ -1,0 +1,10 @@
+cmake_minimum_required(VERSION 3.10)
+project(fleet_container)
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(rclcpp_components REQUIRED)
+add_executable(events_container src/events_container.cpp)
+target_link_libraries(events_container
+  rclcpp::rclcpp rclcpp_components::component_manager)
+install(TARGETS events_container RUNTIME DESTINATION lib/${PROJECT_NAME})
+ament_package()

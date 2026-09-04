@@ -69,6 +69,10 @@ void DiffDrive::OnInitialize(const YAML::Node & config)
   // Nav2 publishes geometry_msgs/Twist by default up to Jazzy and
   // TwistStamped from Kilted on; pick the wire type per model.
   bool stamped_cmd_vel = reader.Get<bool>("stamped_cmd_vel", false);
+  // Robot-level movement pause. The default deliberately avoids "pause":
+  // for a model without a namespace that would collide with the world's
+  // /pause service (std_srvs/Empty) on the same node and abort.
+  std::string pause_service = reader.Get<std::string>("pause_service", "pause_motion");
   std::string body_name = reader.Get<std::string>("body");
   std::string odom_frame_id = reader.Get<std::string>("odom_frame_id", "odom");
 
@@ -140,7 +144,7 @@ void DiffDrive::OnInitialize(const YAML::Node & config)
   // while paused the body is pinned and cmd_vel is ignored; the nav stack
   // keeps its goal and the robot continues on resume.
   pause_srv_ = node_->create_service<std_srvs::srv::SetBool>(
-    GetModel()->NameSpaceTopic("pause"),
+    GetModel()->NameSpaceTopic(pause_service),
     [this](
       const std::shared_ptr<std_srvs::srv::SetBool::Request> req,
       std::shared_ptr<std_srvs::srv::SetBool::Response> res) {

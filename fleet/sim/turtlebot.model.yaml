@@ -24,6 +24,8 @@ plugins:
     # nav2 <= jazzy publishes geometry_msgs/Twist; set true on kilted+ fleets
     # (or keep nav2's enable_stamped_cmd_vel: false, as fleet/nav2 does).
     stamped_cmd_vel: false
+    # namespaced robots can use the short name: /robotN/pause
+    pause_service: pause
     # variances; sigma ~1 cm pose jitter (resampled every publish). Enough to
     # keep SLAM honest without the visible wobble of the old 3 cm setting.
     odom_pose_noise: [0.0001, 0.0001, 0.0001]
@@ -56,8 +58,9 @@ plugins:
 
   - type: Modes
     name: modes
-    initial_mode: idle
-    modes: [idle, cleaning, transporting, charging]
+    body: base_link   # enables automatic idle/navigating/charging detection
+    # manual overrides allowed via mode_cmd; 'auto' returns to automatic
+    modes: [cleaning, transporting, mission]
 
   - type: Battery
     name: battery
