@@ -72,9 +72,11 @@ controller_server:
       yaw_goal_tolerance: 0.25
     FollowPath:
       plugin: "dwb_core::DWBLocalPlanner"
-      min_vel_x: 0.0
+      min_vel_x: -0.13   # allow reversing to back out of tight corners
       max_vel_x: 0.26
+      min_speed_xy: -0.13
       max_speed_xy: 0.26
+      min_speed_theta: 0.0
       max_vel_theta: 1.82
       acc_lim_x: 2.5
       acc_lim_theta: 3.2
@@ -209,5 +211,6 @@ global_costmap:
           obstacle_min_range: 0.0
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        cost_scaling_factor: 3.0
-        inflation_radius: 0.55
+        # wide, gentle: global plans hug aisle centers instead of shelf corners
+        cost_scaling_factor: 2.0
+        inflation_radius: 0.75

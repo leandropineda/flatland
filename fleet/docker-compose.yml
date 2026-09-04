@@ -63,7 +63,7 @@ services:
     container_name: fleet-robot1
     command: >
       ros2 launch /fleet/nav2/robot.launch.py namespace:=robot1
-      localization:=${LOCALIZATION:-amcl}
+      localization:=${LOCALIZATION:-static}
       world_dir:=/fleet/sim/worlds/${WORLD:-office}
       container:=${CONTAINER:-events}
 
@@ -72,7 +72,7 @@ services:
     container_name: fleet-robot2
     command: >
       ros2 launch /fleet/nav2/robot.launch.py namespace:=robot2
-      localization:=${LOCALIZATION:-amcl}
+      localization:=${LOCALIZATION:-static}
       world_dir:=/fleet/sim/worlds/${WORLD:-office}
       container:=${CONTAINER:-events}
 
@@ -81,7 +81,7 @@ services:
     container_name: fleet-robot3
     command: >
       ros2 launch /fleet/nav2/robot.launch.py namespace:=robot3
-      localization:=${LOCALIZATION:-amcl}
+      localization:=${LOCALIZATION:-static}
       world_dir:=/fleet/sim/worlds/${WORLD:-office}
       container:=${CONTAINER:-events}
 
@@ -101,7 +101,7 @@ services:
       DISPLAY: ${DISPLAY:-:0}
       QT_X11_NO_MITSHM: "1"
       WORLD: ${WORLD:-office}
-      LOCALIZATION: ${LOCALIZATION:-amcl}
+      LOCALIZATION: ${LOCALIZATION:-static}
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - ./sim:/fleet/sim:ro

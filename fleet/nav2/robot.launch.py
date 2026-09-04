@@ -54,21 +54,22 @@ def setup(context, *args, **kwargs):
     ns = LaunchConfiguration('namespace').perform(context)
     localization = LaunchConfiguration('localization').perform(context)
     world_dir = LaunchConfiguration('world_dir').perform(context)
-    if localization not in ('amcl', 'slam'):
-        raise RuntimeError(f'localization must be amcl or slam, got {localization}')
+    if localization not in ('static', 'amcl', 'slam'):
+        raise RuntimeError(f'localization must be static, amcl or slam, got {localization}')
 
-    # With a known map all robots share the global `map` frame; with SLAM each
-    # robot owns its own map frame.
-    global_frame = 'map' if localization == 'amcl' else f'{ns}/map'
+    # Known-map modes (static, amcl) share the global `map` frame; SLAM gives
+    # each robot its own map frame.
+    global_frame = f'{ns}/map' if localization == 'slam' else 'map'
 
     template = os.path.join(os.path.dirname(__file__), 'nav2_params.yaml')
     with open(template) as f:
         text = f.read().replace('${NS}', ns).replace('${GLOBAL_FRAME}', global_frame)
     params = yaml.safe_load(text)
-    if localization == 'amcl':
-        x, y, yaw = spawn_pose(world_dir, ns)
+    if localization in ('static', 'amcl'):
         params['map_server']['ros__parameters']['yaml_filename'] = \
             os.path.join(world_dir, 'map.yaml')
+    if localization == 'amcl':
+        x, y, yaw = spawn_pose(world_dir, ns)
         params['amcl']['ros__parameters']['initial_pose'] = \
             {'x': x, 'y': y, 'z': 0.0, 'yaw': yaw}
     params_file = os.path.join(tempfile.gettempdir(), f'{ns}_nav2_params.yaml')
@@ -97,15 +98,31 @@ def setup(context, *args, **kwargs):
         parameters=[params_file, {'use_sim_time': True}],
     )
 
-    if localization == 'amcl':
+    map_server_node = ComposableNode(
+        package='nav2_map_server',
+        plugin='nav2_map_server::MapServer',
+        name='map_server',
+        namespace=ns,
+        parameters=[params_file],
+    )
+    if localization == 'static':
+        # Known map + perfect localization: flatland's odom is world-anchored
+        # (near ground truth, non-accumulating), so a static identity
+        # map->odom makes the robot's map pose track ground truth. No AMCL =
+        # no scan-match drift, so navigation is unconditionally reliable.
+        loc_components = [map_server_node]
+        loc_names = ['map_server']
+        extra_nodes = [Node(
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            name='map_to_odom',
+            namespace=ns,
+            arguments=['--frame-id', 'map', '--child-frame-id', f'{ns}/odom'],
+            parameters=[{'use_sim_time': True}],
+        )]
+    elif localization == 'amcl':
         loc_components = [
-            ComposableNode(
-                package='nav2_map_server',
-                plugin='nav2_map_server::MapServer',
-                name='map_server',
-                namespace=ns,
-                parameters=[params_file],
-            ),
+            map_server_node,
             ComposableNode(
                 package='nav2_amcl',
                 plugin='nav2_amcl::AmclNode',
@@ -115,6 +132,7 @@ def setup(context, *args, **kwargs):
             ),
         ]
         loc_names = ['map_server', 'amcl']
+        extra_nodes = []
     else:
         loc_components = [
             ComposableNode(
@@ -129,6 +147,7 @@ def setup(context, *args, **kwargs):
             )
         ]
         loc_names = ['slam_toolbox']
+        extra_nodes = []
 
     components = list(loc_components)
     for package, plugin, name in NAV2_COMPONENTS:
@@ -160,14 +179,15 @@ def setup(context, *args, **kwargs):
         target_container=f'/{ns}/nav2_container',
         composable_node_descriptions=components,
     )
-    return [container, load]
+    return [container, load, *extra_nodes]
 
 
 def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('namespace', description='robot namespace, e.g. robot1'),
-        DeclareLaunchArgument('localization', default_value='amcl',
-                              description='amcl (known map, shared frame) or slam'),
+        DeclareLaunchArgument('localization', default_value='static',
+                              description='static (known map + perfect odom, '
+                                          'default), amcl, or slam'),
         DeclareLaunchArgument('world_dir', default_value='/fleet/sim/worlds/office',
                               description='world dir with world.yaml + map.yaml'),
         DeclareLaunchArgument('container', default_value='events',
