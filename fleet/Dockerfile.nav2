@@ -37,6 +37,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-${ROS_DISTRO}-nav2-navfn-planner \
     ros-${ROS_DISTRO}-slam-toolbox \
     ros-${ROS_DISTRO}-rmw-cyclonedds-cpp \
+    ros-${ROS_DISTRO}-rmw-zenoh-cpp \
     && rm -rf /var/lib/apt/lists/*
 
 COPY nav2/ /fleet/nav2/

@@ -17,7 +17,9 @@ COPY flatland_plugins/ /ws/src/flatland/flatland_plugins/
 RUN apt-get update && \
     rosdep update --rosdistro "$ROS_DISTRO" && \
     rosdep install --from-paths /ws/src --ignore-src -y && \
-    apt-get install -y --no-install-recommends "ros-$ROS_DISTRO-rmw-cyclonedds-cpp" && \
+    apt-get install -y --no-install-recommends \
+      "ros-$ROS_DISTRO-rmw-cyclonedds-cpp" \
+      "ros-$ROS_DISTRO-rmw-zenoh-cpp" && \
     rm -rf /var/lib/apt/lists/*
 
 RUN cd /ws && . "/opt/ros/$ROS_DISTRO/setup.sh" && \
