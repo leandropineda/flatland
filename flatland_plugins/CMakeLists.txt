@@ -24,6 +24,7 @@ find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(diagnostic_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(interactive_markers REQUIRED)
 find_package(geometry_msgs REQUIRED)
@@ -77,7 +78,7 @@ add_library(flatland_plugins_lib SHARED
   src/modes.cpp
 )
 
-ament_target_dependencies(flatland_plugins_lib rclcpp flatland_server flatland_msgs pluginlib std_msgs std_srvs sensor_msgs visualization_msgs nav_msgs geometry_msgs tf2 tf2_ros tf2_geometry_msgs yaml_cpp_vendor)
+ament_target_dependencies(flatland_plugins_lib rclcpp flatland_server flatland_msgs pluginlib std_msgs std_srvs sensor_msgs diagnostic_msgs visualization_msgs nav_msgs geometry_msgs tf2 tf2_ros tf2_geometry_msgs yaml_cpp_vendor)
 
 target_include_directories(flatland_plugins_lib PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
