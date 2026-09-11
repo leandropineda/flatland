@@ -163,6 +163,13 @@ def setup(context, *args, **kwargs):
         plugin='nav2_lifecycle_manager::LifecycleManager',
         name='lifecycle_manager_navigation',
         namespace=ns,
+        # diagnostic_updater publishes to the absolute /diagnostics, ignoring the
+        # node namespace; remap to relative so Nav2 Health lands on /<ns>/diagnostics
+        # (same trick as /map above). Then the per-robot diagnostics topic carries
+        # both Nav2 Health and the battery plugin's SOC, per robot instead of a
+        # single global topic all robots collapse onto. The lifecycle manager is
+        # the only nav2 node that publishes diagnostics here.
+        remappings=[('/diagnostics', 'diagnostics')],
         parameters=[{
             'use_sim_time': True,
             'autostart': True,
