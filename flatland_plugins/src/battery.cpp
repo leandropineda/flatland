@@ -97,6 +97,9 @@ void Battery::OnInitialize(const YAML::Node &config) {
 
   pub_ = node_->create_publisher<sensor_msgs::msg::BatteryState>(
       GetModel()->NameSpaceTopic(topic), 1);
+  // Namespaced /<ns>/diagnostics — the robot's own battery diagnostic channel.
+  diag_pub_ = node_->create_publisher<diagnostic_msgs::msg::DiagnosticArray>(
+      GetModel()->NameSpaceTopic("diagnostics"), 1);
   marker_pub_ = node_->create_publisher<visualization_msgs::msg::Marker>(
       GetModel()->NameSpaceTopic("battery_marker"), 1);
   // Use transient local QoS so late-joining subscribers (rviz) receive the zone markers
@@ -354,6 +357,46 @@ void Battery::BeforePhysicsStep(const Timekeeper &timekeeper) {
         sensor_msgs::msg::BatteryState::POWER_SUPPLY_TECHNOLOGY_LION;
     msg.present = true;
     pub_->publish(msg);
+
+    // Battery state of charge as ROS diagnostics — where a real robot's battery
+    // driver reports SOC/health; InOrbit's diagnostics agentlet reads it.
+    {
+      diagnostic_msgs::msg::DiagnosticStatus status;
+      status.name = "battery";
+      status.hardware_id = body_->name_;
+      if (depleted_) {
+        status.level = diagnostic_msgs::msg::DiagnosticStatus::ERROR;
+        status.message = "Depleted";
+      } else if (is_charging_now) {
+        status.level = diagnostic_msgs::msg::DiagnosticStatus::OK;
+        status.message = "Charging";
+      } else if (percentage < 0.2) {
+        status.level = diagnostic_msgs::msg::DiagnosticStatus::WARN;
+        status.message = "Low";
+      } else {
+        status.level = diagnostic_msgs::msg::DiagnosticStatus::OK;
+        status.message = "Discharging";
+      }
+      auto add_kv = [&status](const char *key, const std::string &value) {
+        diagnostic_msgs::msg::KeyValue kv;
+        kv.key = key;
+        kv.value = value;
+        status.values.push_back(kv);
+      };
+      char num[32];
+      std::snprintf(num, sizeof(num), "%.1f", percentage * 100.0);
+      add_kv("State of Charge (%)", num);
+      std::snprintf(num, sizeof(num), "%.2f", voltage);
+      add_kv("Voltage (V)", num);
+      std::snprintf(num, sizeof(num), "%.3f", charge_ah_);
+      add_kv("Charge (Ah)", num);
+      add_kv("Charging", is_charging_now ? "true" : "false");
+
+      diagnostic_msgs::msg::DiagnosticArray diag;
+      diag.header.stamp = timekeeper.GetSimTime();
+      diag.status.push_back(status);
+      diag_pub_->publish(diag);
+    }
 
     // Publish text marker above robot
     char text_buf[128];

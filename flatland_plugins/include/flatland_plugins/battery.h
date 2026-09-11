@@ -5,6 +5,7 @@
 #include <flatland_server/timekeeper.h>
 #include <flatland_plugins/update_timer.h>
 #include <sensor_msgs/msg/battery_state.hpp>
+#include <diagnostic_msgs/msg/diagnostic_array.hpp>
 #include <visualization_msgs/msg/marker.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
@@ -37,6 +38,9 @@ class Battery : public flatland_server::ModelPlugin {
   flatland_server::Body *body_;
   UpdateTimer update_timer_;
   rclcpp::Publisher<sensor_msgs::msg::BatteryState>::SharedPtr pub_;
+  // Battery state of charge as ROS diagnostics (where a real robot's battery
+  // driver surfaces it), so InOrbit reads it via the diagnostics agentlet.
+  rclcpp::Publisher<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr diag_pub_;
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr marker_pub_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr zone_marker_pub_;
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr goal_pub_;
