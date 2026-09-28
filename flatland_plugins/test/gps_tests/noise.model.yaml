@@ -1,0 +1,14 @@
+bodies:
+  - name: base
+    pose: [0, 0, 0]
+    type: dynamic
+    color: [1, 1, 0, 1]
+    footprints:
+      - type: circle
+        radius: 0.2
+        density: 1
+plugins:
+  - {type: Gps, name: exact, body: base, broadcast_tf: false}
+  - {type: Gps, name: noisy, body: base, broadcast_tf: false, noise_std_dev: 0.5, seed: 42}
+  - {type: Gps, name: same_seed, body: base, broadcast_tf: false, noise_std_dev: 0.5, seed: 42}
+  - {type: Gps, name: other_seed, body: base, broadcast_tf: false, noise_std_dev: 0.5, seed: 7}

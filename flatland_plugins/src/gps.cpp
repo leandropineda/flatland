@@ -65,6 +65,10 @@ void Gps::UpdateFix()
   m_world_to_body << t.q.c, -t.q.s, t.p.x, t.q.s, t.q.c, t.p.y, 0, 0, 1;
   Eigen::Matrix3f m_world_to_gps = m_world_to_body * m_body_to_gps_;
   b2Vec2 gps_pos(m_world_to_gps(0, 2), m_world_to_gps(1, 2));
+  if (noise_std_dev_ > 0.0) {
+    gps_pos.x += noise_std_dev_ * unit_(rng_);  // east
+    gps_pos.y += noise_std_dev_ * unit_(rng_);  // north
+  }
 
   /* Convert simulation position into ECEF coordinates */
   double s_lat = sin(ref_lat_rad_);
@@ -107,6 +111,19 @@ void Gps::ParseParameters(const YAML::Node & config)
   ref_lon_rad_ = M_PI / 180.0 * reader.Get<double>("ref_lon", 0.0);
   ComputeReferenceEcef();
   origin_ = reader.GetPose("origin", Pose(0, 0, 0));
+  // Receivers are not exact: white noise of noise_std_dev meters east and north, reported as the
+  // fix's covariance; seed repeats the noise sequence
+  noise_std_dev_ = reader.Get<double>("noise_std_dev", 0.0);
+  if (!(noise_std_dev_ >= 0.0)) {  // also rejects NaN
+    throw YAMLException("Gps noise_std_dev must be >= 0");
+  }
+  int seed = reader.Get<int>("seed", 0);
+  rng_ = std::mt19937(seed != 0 ? static_cast<unsigned>(seed) : std::random_device{}());
+  if (noise_std_dev_ > 0.0) {
+    double variance = noise_std_dev_ * noise_std_dev_;
+    gps_fix_.position_covariance = {variance, 0, 0, 0, variance, 0, 0, 0, variance};
+    gps_fix_.position_covariance_type = sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN;
+  }
 
   body_ = GetModel()->GetBody(body_name);
   if (!body_) {

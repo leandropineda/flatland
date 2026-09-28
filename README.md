@@ -34,6 +34,8 @@ What this branch adds over upstream `ros2-jazzy`:
   the odom and ground-truth twist; `body` is what `nav_msgs/Odometry` specifies.
 * **Laser `no_return_value` and `range_min`** (defaults NaN and 0): report
   beams that hit nothing, and the minimum range, the way a real driver does.
+* **Gps `noise_std_dev` and `seed`** (default 0, exact fixes): white
+  horizontal noise, reported as a known covariance.
 * `docker/Dockerfile` builds any distro:
   `docker build -f docker/Dockerfile --build-arg ROS_DISTRO=humble .`
 
