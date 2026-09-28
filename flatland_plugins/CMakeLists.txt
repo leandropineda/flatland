@@ -73,6 +73,7 @@ add_library(flatland_plugins_lib SHARED
   src/world_modifier.cpp
   src/world_random_wall.cpp
   src/gps.cpp
+  src/imu.cpp
   src/battery.cpp
   src/camera.cpp
   src/modes.cpp
@@ -151,6 +152,9 @@ if(BUILD_TESTING)
 
   ament_add_gtest(gps_test test/gps_test.cpp)
   target_link_libraries(gps_test flatland_plugins_lib)
+
+  ament_add_gtest(imu_test test/imu_test.cpp)
+  target_link_libraries(imu_test flatland_plugins_lib)
 
   ament_add_gtest(bumper_test test/bumper_test.cpp)
   target_link_libraries(bumper_test flatland_plugins_lib)

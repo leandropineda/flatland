@@ -36,6 +36,8 @@ What this branch adds over upstream `ros2-jazzy`:
   beams that hit nothing, and the minimum range, the way a real driver does.
 * **Gps `noise_std_dev` and `seed`** (default 0, exact fixes): white
   horizontal noise, reported as a known covariance.
+* **Imu plugin**: a 2D IMU on a body (yaw, yaw rate, and linear acceleration
+  plus gravity), with optional noise and a seed.
 * `docker/Dockerfile` builds any distro:
   `docker build -f docker/Dockerfile --build-arg ROS_DISTRO=humble .`
 
