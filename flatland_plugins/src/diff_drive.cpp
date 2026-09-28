@@ -81,6 +81,10 @@ void DiffDrive::OnInitialize(const YAML::Node & config)
   std::string ground_truth_topic =
     reader.Get<std::string>("ground_truth_pub", "odometry/ground_truth");
   std::string twist_pub_topic = reader.Get<std::string>("twist_pub", "twist");
+  cmd_vel_timeout_ = reader.Get<double>("cmd_vel_timeout", 0.0);
+  if (!(cmd_vel_timeout_ >= 0.0)) {  // also rejects NaN, which would disable the stop silently
+    throw YAMLException("cmd_vel_timeout must be >= 0 (0 disables it)");
+  }
 
   // noise are in the form of linear x, linear y, angular variances
   std::vector<double> odom_twist_noise =
@@ -125,11 +129,11 @@ void DiffDrive::OnInitialize(const YAML::Node & config)
   if (stamped_cmd_vel) {
     twist_stamped_sub_ = node_->create_subscription<geometry_msgs::msg::TwistStamped>(
       twist_topic, 1,
-      [this](const geometry_msgs::msg::TwistStamped::SharedPtr msg) { twist_msg_ = msg->twist; });
+      [this](const geometry_msgs::msg::TwistStamped::SharedPtr msg) { Command(msg->twist); });
   } else {
     twist_sub_ = node_->create_subscription<geometry_msgs::msg::Twist>(
       twist_topic, 1,
-      [this](const geometry_msgs::msg::Twist::SharedPtr msg) { twist_msg_ = *msg; });
+      [this](const geometry_msgs::msg::Twist::SharedPtr msg) { Command(*msg); });
   }
   if (enable_odom_pub_) {
     odom_pub_ = node_->create_publisher<nav_msgs::msg::Odometry>(odom_topic, 1);
@@ -190,6 +194,12 @@ void DiffDrive::OnInitialize(const YAML::Node & config)
     (void*)body_, body_->name_.c_str(), odom_frame_id.c_str(), twist_topic.c_str(), odom_topic.c_str(),
     ground_truth_topic.c_str(), odom_pose_noise[0], odom_pose_noise[1], odom_pose_noise[2],
     odom_twist_noise[0], odom_twist_noise[1], odom_twist_noise[2], pub_rate);
+}
+
+void DiffDrive::Command(const geometry_msgs::msg::Twist & cmd)
+{
+  twist_msg_ = cmd;
+  cmd_age_ = 0.0;
 }
 
 void DiffDrive::BeforePhysicsStep(const Timekeeper & timekeeper)
@@ -264,6 +274,15 @@ void DiffDrive::BeforePhysicsStep(const Timekeeper & timekeeper)
     odom_tf.transform.rotation = odom_msg_.pose.pose.orientation;
     tf_broadcaster_->sendTransform(odom_tf);
   }
+
+  // A controller that stops publishing (it died, or sent a single message) would otherwise leave
+  // the body driving at its last command forever. With cmd_vel_timeout > 0, a command applied for
+  // longer than that, in sim time, reads as zero. Paused steps count, so a command sent during a
+  // pause is not fresh when it ends.
+  if (cmd_vel_timeout_ > 0 && cmd_age_ > cmd_vel_timeout_) {
+    twist_msg_ = geometry_msgs::msg::Twist();
+  }
+  cmd_age_ += timekeeper.GetStepSize();
 
   if (paused_) {
     b2body->SetLinearVelocity(b2Vec2(0, 0));

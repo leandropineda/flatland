@@ -74,7 +74,9 @@ public:
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr ground_truth_pub_;
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_pub_;
   Body * body_;
-  geometry_msgs::msg::Twist twist_msg_;  ///< last commanded velocity (zero-initialized)
+  geometry_msgs::msg::Twist twist_msg_;  ///< last commanded velocity, zeroed once stale
+  double cmd_vel_timeout_ = 0.0;  ///< s; a command older than this reads as zero, 0 disables
+  double cmd_age_ = 0.0;          ///< s of sim time the last command has been applied for
   rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr pause_srv_;
   bool paused_ = false;  ///< while true the body is held still and cmd_vel is ignored
   nav_msgs::msg::Odometry odom_msg_;
@@ -99,6 +101,13 @@ public:
    * @param[in]     config The plugin YAML node
    */
   void BeforePhysicsStep(const Timekeeper & timekeeper) override;
+
+  /**
+   * @name          Command
+   * @brief         set the commanded velocity, as a message on the twist topic does
+   * @param[in]     cmd Forward (linear.x) and rotation (angular.z) velocity in the body frame
+   */
+  void Command(const geometry_msgs::msg::Twist & cmd);
 };
 }  // namespace flatland_plugins
 
