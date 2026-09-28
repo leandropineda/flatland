@@ -23,6 +23,9 @@
   <class type="flatland_plugins::Gps" base_class_type="flatland_server::ModelPlugin">
     <description>Simulate GPS receiver and publish a NavSatFix message</description>
   </class>
+  <class type="flatland_plugins::Imu" base_class_type="flatland_server::ModelPlugin">
+    <description>Simulate a 2D IMU: yaw, yaw rate and acceleration of a body point</description>
+  </class>
   <class type="flatland_plugins::Battery" base_class_type="flatland_server::ModelPlugin">
     <description>Simulate a battery: drain by motion, charging zones, BatteryState output</description>
   </class>

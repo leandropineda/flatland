@@ -1,0 +1,17 @@
+bodies:
+  - name: base
+    pose: [0, 0, 0]
+    type: dynamic
+    color: [1, 1, 0, 1]
+    footprints:
+      - type: circle
+        radius: 0.2
+        density: 1
+plugins:
+  - {type: Imu, name: first, body: base, broadcast_tf: false}  # before the drive
+  - {type: DiffDrive, name: drive, body: base, max_linear_acceleration: 1.0}
+  - {type: Imu, name: level, body: base, broadcast_tf: false}
+  - {type: Imu, name: yawed, body: base, broadcast_tf: false, origin: [0, 0, 1.5707963]}
+  - {type: Imu, name: offset, body: base, broadcast_tf: false, origin: [0.5, 0, 0]}
+  - {type: Imu, name: noisy, body: base, broadcast_tf: false, angular_velocity_noise_std_dev: 0.01,
+     linear_acceleration_noise_std_dev: 0.1, orientation_noise_std_dev: 0.02, seed: 7}
