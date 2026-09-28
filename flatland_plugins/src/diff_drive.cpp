@@ -111,6 +111,12 @@ void DiffDrive::OnInitialize(const YAML::Node & config)
   {
     throw YAMLException("DiffDrive acceleration limits must be >= 0 (0 = unlimited)");
   }
+  // The odometry twist has always been world-frame; nav_msgs/Odometry puts it in the child frame
+  std::string twist_frame = reader.Get<std::string>("twist_frame", "world");
+  if (twist_frame != "world" && twist_frame != "body") {
+    throw YAMLException("twist_frame must be world or body, not " + Q(twist_frame));
+  }
+  twist_in_body_frame_ = twist_frame == "body";
 
   // noise are in the form of linear x, linear y, angular variances
   std::vector<double> odom_twist_noise =
@@ -239,8 +245,11 @@ void DiffDrive::BeforePhysicsStep(const Timekeeper & timekeeper)
 
   if (publish) {
     // get the state of the body and publish the data
+    // the velocity of the body origin, in the world frame
     b2Vec2 linear_vel_local = b2body->GetLinearVelocityFromLocalPoint(b2Vec2(0, 0));
     float angular_vel = b2body->GetAngularVelocity();
+    b2Vec2 twist_linear =
+      twist_in_body_frame_ ? b2body->GetLocalVector(linear_vel_local) : linear_vel_local;
 
     ground_truth_msg_.header.stamp = timekeeper.GetSimTime();
     ground_truth_msg_.pose.pose.position.x = position.x;
@@ -250,8 +259,8 @@ void DiffDrive::BeforePhysicsStep(const Timekeeper & timekeeper)
     q.setRPY(0, 0, angle);
 
     ground_truth_msg_.pose.pose.orientation = tf2::toMsg(q);
-    ground_truth_msg_.twist.twist.linear.x = linear_vel_local.x;
-    ground_truth_msg_.twist.twist.linear.y = linear_vel_local.y;
+    ground_truth_msg_.twist.twist.linear.x = twist_linear.x;
+    ground_truth_msg_.twist.twist.linear.y = twist_linear.y;
     ground_truth_msg_.twist.twist.linear.z = 0;
     ground_truth_msg_.twist.twist.angular.x = 0;
     ground_truth_msg_.twist.twist.angular.y = 0;

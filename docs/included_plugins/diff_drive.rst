@@ -58,6 +58,12 @@ velocities and odometries are w.r.t. the robot origin
       # slowing down
       max_angular_acceleration: 0.0
 
+      # optional, defaults to world. The frame of the linear twist in the odom and
+      # ground truth messages, and so of odom_twist_noise and odom_twist_covariance:
+      # world, or body (the child_frame_id, as nav_msgs/Odometry specifies and Nav2
+      # reads it). Any other value fails the model load. twist_pub is always body
+      twist_frame: world
+
       # optional, defaults to "odometry/filtered", the topic to advertise for
       # publish noisy odometry
       odom_pub: odometry/filtered

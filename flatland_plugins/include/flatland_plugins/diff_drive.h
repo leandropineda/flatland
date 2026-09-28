@@ -81,6 +81,7 @@ public:
   double max_linear_deceleration_ = 0.0;   ///< m/s^2 slowing down or reversing, 0 = unlimited
   double max_angular_acceleration_ = 0.0;  ///< rad/s^2 either way, 0 = unlimited
   geometry_msgs::msg::Twist applied_twist_;  ///< velocity applied last step, within the limits
+  bool twist_in_body_frame_ = false;  ///< odom and ground truth twist in the body (child) frame
   rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr pause_srv_;
   bool paused_ = false;  ///< while true the body is held still and cmd_vel is ignored
   nav_msgs::msg::Odometry odom_msg_;
