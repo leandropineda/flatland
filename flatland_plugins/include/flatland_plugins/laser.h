@@ -98,8 +98,9 @@ public:
    */
   uint16_t reflectance_layers_bits_;
 
-  std::default_random_engine rng_;              ///< random generator
-  std::normal_distribution<double> noise_gen_;  ///< gaussian noise generator
+  std::default_random_engine rng_;                   ///< random generator
+  // a zero-sigma normal_distribution is undefined behavior (it aborts under _GLIBCXX_ASSERTIONS)
+  std::normal_distribution<double> unit_{0.0, 1.0};  ///< N(0, 1), scaled by noise_std_dev_
 
   Eigen::Matrix3f m_body_to_laser_;         ///< tf from body to laser
   Eigen::Matrix3f m_world_to_body_;         ///< tf  from world to body

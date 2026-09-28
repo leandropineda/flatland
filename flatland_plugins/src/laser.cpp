@@ -202,7 +202,7 @@ void Laser::ComputeLaserRanges()
   for (unsigned int i = 0; i < num_beams; ++i) {
     // noise applies to hits only: a no-return beam reads exactly no_return_value
     laser_scan_.ranges[i] =
-      std::isnan(hits[i].first) ? no_return_value_ : hits[i].first + this->noise_gen_(this->rng_);
+      std::isnan(hits[i].first) ? no_return_value_ : hits[i].first + noise_std_dev_ * unit_(rng_);
     if (reflectance_layers_bits_) laser_scan_.intensities[i] = hits[i].second;
   }
 }
@@ -291,7 +291,6 @@ void Laser::ParseParameters(const YAML::Node & config)
   // init the random number generators
   std::random_device rd;
   rng_ = std::default_random_engine(rd());
-  noise_gen_ = std::normal_distribution<double>(0.0, noise_std_dev_);
 
   RCLCPP_DEBUG(
     rclcpp::get_logger("LaserPlugin"),
