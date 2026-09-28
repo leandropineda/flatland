@@ -5,6 +5,7 @@
 #include <tf2_ros/transform_broadcaster.h>
 
 #include <Eigen/Dense>
+#include <random>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
 
@@ -38,6 +39,10 @@ public:
                           /// altitude
   double update_rate_;    ///< GPS fix publish rate
   bool broadcast_tf_;     ///< whether to broadcast laser origin w.r.t body
+  double noise_std_dev_;  ///< m, horizontal white noise on each fix; 0 = exact fixes
+
+  std::mt19937 rng_;                       ///< seeded by the seed parameter (0 = random)
+  std::normal_distribution<double> unit_;  ///< N(0, 1), scaled by noise_std_dev_
 
   static double WGS84_A;   ///< Earth's major axis length
   static double WGS84_E2;  ///< Square of Earth's first eccentricity

@@ -6,7 +6,8 @@
 
 GPS
 ==========
-This plugin provides a simple simulation of a perfectly-accurate GPS receiver.
+This plugin provides a simple simulation of a GPS receiver, perfectly accurate by default (see
+``noise_std_dev``).
 
 * Reference latitude and longitude are set in the plugin's YAML parameters. The reference coordinates correspond to (0, 0) in the Flatland world frame.
 
@@ -53,3 +54,12 @@ This plugin provides a simple simulation of a perfectly-accurate GPS receiver.
       # optional, default to [0, 0, 0], in the form of [x, y, yaw], the position
       # and orientation to place GPS antenna relative to specified model body
       origin: [0, 0, 0]
+
+      # optional, defaults to 0.0 (exact fixes), in meters, >= 0: white gaussian
+      # noise added east and north to each fix; altitude stays exact. When set, the
+      # fix reports a known diagonal covariance of noise_std_dev^2 on all three axes
+      noise_std_dev: 0.0
+
+      # optional, defaults to 0 (a random seed each run): seeds the noise, so each
+      # run gets the same noise sequence
+      seed: 0
