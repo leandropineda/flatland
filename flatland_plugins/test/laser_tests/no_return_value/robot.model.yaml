@@ -1,0 +1,26 @@
+# range_test's robot, with only its back laser, configured like a driver that reports 0.0 for no return
+
+bodies:  # List of named bodies
+  - name: base_link
+    pose: [0, 0, 0]
+    type: dynamic
+    color: [1, 1, 0, 1]
+    footprints:
+      - type: circle
+        density: 1
+        center: [0, 0]
+        radius: 0.1
+
+plugins:
+  - type: Laser
+    name: laser_back
+    topic: scan_back
+    body: base_link
+    origin: [-1, -1, 1.5707963267948966]
+    range: 4
+    range_min: 0.05
+    update_rate: 1
+    no_return_value: 0.0
+    noise_std_dev: 0.05  # noise applies to hits, never to the no-return value
+    angle: {min: 0, max: 6.283185307179586, increment: 1.5707963267948966}
+    layers: ["layer_2"]

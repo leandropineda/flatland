@@ -38,11 +38,22 @@ messages.
       # only used when broadcast_tf=true
       frame: laser_back
 
-      # required, maximum range of the laser, minimum range assumed to be zero, in meters
+      # required, maximum range of the laser, in meters
       range: 20
+
+      # optional, default to 0, the range_min the scan reports, in meters, from 0 up
+      # to range. Consumers discard ranges below it (REP 117); returns closer than it
+      # are still published
+      range_min: 0
 
       # optional, default to 0.0, standard deviation of a gaussian noise
       noise_std_dev: 0
+
+      # optional, default to .nan, the range reported for a beam that hits
+      # nothing. Some drivers report 0.0, others .inf (REP 117) or range_max; with
+      # 0.0, set range_min above 0 as those drivers do, or consumers read 0.0 as a
+      # return at the sensor. Noise never applies to it
+      no_return_value: .nan
 
       # required, w.r.t to the coordinate system, scan from min angle to max angle
       # at steps of specified increments
