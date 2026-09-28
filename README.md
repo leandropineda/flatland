@@ -30,6 +30,8 @@ What this branch adds over upstream `ros2-jazzy`:
 * **DiffDrive acceleration limits** (`max_linear_acceleration`,
   `max_linear_deceleration`, `max_angular_acceleration`; default 0,
   unlimited): the robot follows its command as a base controller lets it.
+* **DiffDrive `twist_frame`** (`world`, the default, or `body`): the frame of
+  the odom and ground-truth twist; `body` is what `nav_msgs/Odometry` specifies.
 * `docker/Dockerfile` builds any distro:
   `docker build -f docker/Dockerfile --build-arg ROS_DISTRO=humble .`
 

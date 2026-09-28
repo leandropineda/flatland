@@ -93,6 +93,11 @@ public:
   }
   double Speed() { return drive_->body_->physics_body_->GetLinearVelocity().Length(); }
   double Turn() { return drive_->body_->physics_body_->GetAngularVelocity(); }
+  const geometry_msgs::msg::Vector3 & GroundTruthLinear()
+  {
+    return drive_->ground_truth_msg_.twist.twist.linear;
+  }
+  const geometry_msgs::msg::Vector3 & OdomLinear() { return drive_->odom_msg_.twist.twist.linear; }
   void Drive(double v, double w = 0.0)
   {
     geometry_msgs::msg::Twist cmd;
@@ -251,6 +256,33 @@ TEST(DiffDriveAccelTest, no_limits_by_default_apply_the_command_at_once)
   w.Step(1);
   EXPECT_NEAR(w.Speed(), 1.0, 1e-3);
   EXPECT_NEAR(w.Turn(), 1.0, 1e-3);
+}
+
+TEST(DiffDriveTwistFrameTest, by_default_the_odometry_twist_is_in_the_world_frame)
+{
+  DiffDriveWorld w("twist_world");  // facing +y
+  w.Drive(1.0);
+  w.Step(2);  // the message reports the previous step's velocity
+  EXPECT_NEAR(w.GroundTruthLinear().x, 0.0, 1e-3);
+  EXPECT_NEAR(w.GroundTruthLinear().y, 1.0, 1e-3);
+  EXPECT_NEAR(w.OdomLinear().x, 0.0, 1e-3);  // no odom noise in this model
+  EXPECT_NEAR(w.OdomLinear().y, 1.0, 1e-3);
+}
+
+TEST(DiffDriveTwistFrameTest, twist_frame_body_reports_it_in_the_child_frame)
+{
+  DiffDriveWorld w("twist_body");  // facing +y, twist_frame: body
+  w.Drive(1.0);
+  w.Step(2);  // the message reports the previous step's velocity
+  EXPECT_NEAR(w.GroundTruthLinear().x, 1.0, 1e-3);
+  EXPECT_NEAR(w.GroundTruthLinear().y, 0.0, 1e-3);
+  EXPECT_NEAR(w.OdomLinear().x, 1.0, 1e-3);
+  EXPECT_NEAR(w.OdomLinear().y, 0.0, 1e-3);
+}
+
+TEST(DiffDriveTwistFrameTest, an_unknown_twist_frame_fails_the_model_load)
+{
+  EXPECT_THROW(DiffDriveWorld w("twist_bad"), flatland_server::PluginException);  // "Body"
 }
 
 // Run all the tests that were declared with TEST()
