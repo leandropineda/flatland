@@ -79,7 +79,9 @@ public:
   Body * body_;           ///<  body the laser frame attaches to
   Pose origin_;           ///< laser frame w.r.t the body
   double range_;          ///< laser max range
+  double range_min_;      ///< the scan's range_min, 0 by default
   double noise_std_dev_;  ///< noise std deviation
+  double no_return_value_;  ///< range reported for a beam that hits nothing, NaN by default
   double max_angle_;      /// < laser max angle
   double min_angle_;      ///< laser min angle
   double increment_;      ///< laser angle increment

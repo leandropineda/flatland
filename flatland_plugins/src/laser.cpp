@@ -108,7 +108,7 @@ void Laser::OnInitialize(const YAML::Node & config)
   laser_scan_.angle_increment = increment_;
   laser_scan_.time_increment = 0;
   laser_scan_.scan_time = 0;
-  laser_scan_.range_min = 0;
+  laser_scan_.range_min = range_min_;
   laser_scan_.range_max = range_;
   laser_scan_.ranges.resize(num_laser_points);
   if (reflectance_layers_bits_)
@@ -200,7 +200,9 @@ void Laser::ComputeLaserRanges()
   }
 
   for (unsigned int i = 0; i < num_beams; ++i) {
-    laser_scan_.ranges[i] = hits[i].first + this->noise_gen_(this->rng_);
+    // noise applies to hits only: a no-return beam reads exactly no_return_value
+    laser_scan_.ranges[i] =
+      std::isnan(hits[i].first) ? no_return_value_ : hits[i].first + this->noise_gen_(this->rng_);
     if (reflectance_layers_bits_) laser_scan_.intensities[i] = hits[i].second;
   }
 }
@@ -241,7 +243,12 @@ void Laser::ParseParameters(const YAML::Node & config)
   update_rate_ = reader.Get<double>("update_rate", std::numeric_limits<double>::infinity());
   origin_ = reader.GetPose("origin", Pose(0, 0, 0));
   range_ = reader.Get<double>("range");
+  range_min_ = reader.Get<double>("range_min", 0.0);
+  if (!(range_min_ >= 0.0 && range_min_ <= range_)) {
+    throw YAMLException("Laser range_min must be between 0 and range");
+  }
   noise_std_dev_ = reader.Get<double>("noise_std_dev", 0);
+  no_return_value_ = reader.Get<double>("no_return_value", NAN);
   // a handful of chunked workers beats one task per beam; more threads only
   // add wakeup churn (the old default was hardware_concurrency()+1 per laser)
   int threads = reader.Get<int>("threads", 4);

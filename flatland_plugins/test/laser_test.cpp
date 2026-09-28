@@ -266,6 +266,43 @@ TEST_F(LaserPluginTest, range_test)
   EXPECT_TRUE(fltcmp(p3->update_rate_, 1)) << "Actual: " << p3->update_rate_;
   EXPECT_EQ(p3->body_, w->models_[0]->bodies_[0]);
 }
+
+/**
+ * Test the laser plugin's no_return_value and range_min, set as a driver that reports 0.0 for a
+ * beam that hits nothing: 0.0 below range_min, which consumers discard (REP 117)
+ */
+TEST_F(LaserPluginTest, no_return_value_test)
+{
+  world_yaml = this_file_dir / fs::path("laser_tests/no_return_value/world.yaml");
+
+  Timekeeper timekeeper(node);
+  timekeeper.SetMaxStepSize(1.0);
+  std::shared_ptr<rclcpp::Node> node = rclcpp::Node::make_shared("test_node");
+  w = World::MakeWorld(node, world_yaml.string());
+
+  auto * obj = dynamic_cast<LaserPluginTest *>(this);
+  auto sub = node->create_subscription<sensor_msgs::msg::LaserScan>(
+    "r/scan_back", 1, std::bind(&LaserPluginTest::ScanBackCb, obj, _1));
+
+  rclcpp::WallRate rate(500);
+  for (unsigned int i = 0; i < 100 && !scan_back_received; i++) {
+    w->Update(timekeeper);
+    rclcpp::spin_some(node);
+    rate.sleep();
+  }
+
+  ASSERT_TRUE(scan_back_received);
+  ASSERT_EQ(scan_back.ranges.size(), 5u);
+  EXPECT_FLOAT_EQ(scan_back.range_min, 0.05f);
+  for (unsigned int i : {0u, 3u, 4u}) {  // no return: exactly the configured value, noise or not
+    EXPECT_EQ(scan_back.ranges[i], 0.0f) << "beam " << i;
+  }
+  EXPECT_NEAR(scan_back.ranges[1], 3.2, 0.3);  // hits keep their noise
+  EXPECT_NEAR(scan_back.ranges[2], 3.5, 0.3);
+  EXPECT_FALSE(fltcmp(scan_back.ranges[1], 3.2) && fltcmp(scan_back.ranges[2], 3.5))
+    << "noise is live";
+}
+
 /**
  * Test the laser plugin for intensity configuration
  */
