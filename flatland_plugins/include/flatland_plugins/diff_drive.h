@@ -92,7 +92,10 @@ public:
   bool enable_twist_pub_;  ///< YAML parameter to enable twist publishing
 
   std::default_random_engine rng_;
-  std::array<std::normal_distribution<double>, 6> noise_gen_;
+  std::array<double, 6> noise_std_dev_;  ///< odom pose x, y, yaw, then twist x, y, yaw
+  // a zero-sigma normal_distribution is undefined behavior (it aborts under _GLIBCXX_ASSERTIONS)
+  std::normal_distribution<double> unit_{0.0, 1.0};
+  double Noise(int i) { return noise_std_dev_[i] * unit_(rng_); }
 
   /**
    * @name          OnInitialize

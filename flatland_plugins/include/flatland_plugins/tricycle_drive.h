@@ -92,7 +92,10 @@ public:
   UpdateTimer update_timer_;
 
   default_random_engine rng_;
-  array<normal_distribution<double>, 6> noise_gen_;
+  array<double, 6> noise_std_dev_;  ///< odom pose x, y, yaw, then twist x, y, yaw
+  // a zero-sigma normal_distribution is undefined behavior (it aborts under _GLIBCXX_ASSERTIONS)
+  normal_distribution<double> unit_{0.0, 1.0};
+  double Noise(int i) { return noise_std_dev_[i] * unit_(rng_); }
 
   /**
    * @name                OnInitialize
