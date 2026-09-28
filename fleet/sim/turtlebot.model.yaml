@@ -19,6 +19,9 @@ plugins:
     odom_frame_id: odom
     pub_rate: 20.0
     twist_sub: cmd_vel
+    # stop 0.5 s after the last command, as a real base controller does, so a
+    # dead nav2 never leaves the robot driving
+    cmd_vel_timeout: 0.5
     odom_pub: odom
     ground_truth_pub: ground_truth
     # nav2 <= jazzy publishes geometry_msgs/Twist; set true on kilted+ fleets

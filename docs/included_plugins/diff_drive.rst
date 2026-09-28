@@ -39,6 +39,12 @@ velocities and odometries are w.r.t. the robot origin
       # commands
       twist_sub: cmd_vel
 
+      # optional, defaults to 0 (disabled), in seconds of sim time, >= 0. A command
+      # older than this reads as zero, so the robot stops when its controller stops
+      # publishing (it died, or sent a single message) instead of driving on. Time
+      # paused with pause_service counts
+      cmd_vel_timeout: 0.0
+
       # optional, defaults to "odometry/filtered", the topic to advertise for
       # publish noisy odometry
       odom_pub: odometry/filtered

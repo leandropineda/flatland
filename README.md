@@ -25,6 +25,8 @@ What this branch adds over upstream `ros2-jazzy`:
   `/resume`, `/toggle_pause` still exist.
 * **DiffDrive/TricycleDrive `stamped_cmd_vel` param**: `Twist` (default,
   nav2 ≤ jazzy) or `TwistStamped` (nav2 kilted+) — humble compatibility.
+* **DiffDrive `cmd_vel_timeout`** (default 0, off): a command older than
+  this, in sim time, reads as zero, so a robot stops when its controller dies.
 * `docker/Dockerfile` builds any distro:
   `docker build -f docker/Dockerfile --build-arg ROS_DISTRO=humble .`
 
