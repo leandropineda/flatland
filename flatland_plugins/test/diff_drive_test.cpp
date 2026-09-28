@@ -155,6 +155,104 @@ TEST(DiffDriveCmdTimeoutTest, no_timeout_by_default_keeps_the_last_command)
   EXPECT_NEAR(w.Speed(), 1.0, 1e-3);
 }
 
+TEST(DiffDriveAccelTest, speeding_up_is_limited_by_max_linear_acceleration)
+{
+  DiffDriveWorld w("accel");  // 1.0 m/s2 up, 2.0 m/s2 down
+  w.Drive(1.0);
+  w.Step(5);  // 0.5 s at 1 m/s2
+  EXPECT_NEAR(w.Speed(), 0.5, 1e-3);
+  w.Drive(1.0);
+  w.Step(5);
+  EXPECT_NEAR(w.Speed(), 1.0, 1e-3);
+}
+
+TEST(DiffDriveAccelTest, slowing_down_is_limited_by_max_linear_deceleration)
+{
+  DiffDriveWorld w("accel");
+  for (int i = 0; i < 3; i++) {  // up to 1 m/s
+    w.Drive(1.0);
+    w.Step(4);
+  }
+  w.Drive(0.0);
+  w.Step(2);  // 0.2 s at 2 m/s2
+  EXPECT_NEAR(w.Speed(), 0.6, 1e-3);
+  w.Step(3);
+  EXPECT_NEAR(w.Speed(), 0.0, 1e-3);
+}
+
+TEST(DiffDriveAccelTest, reversing_counts_as_slowing_down)
+{
+  DiffDriveWorld w("accel");
+  w.Drive(1.0);
+  w.Step(5);  // 0.5 m/s
+  w.Drive(-1.0);
+  w.Step(1);  // 0.1 s at the 2 m/s2 deceleration, not the 1 m/s2 acceleration
+  EXPECT_NEAR(w.Speed(), 0.3, 1e-3);
+}
+
+TEST(DiffDriveAccelTest, the_deceleration_limit_defaults_to_the_acceleration_limit)
+{
+  DiffDriveWorld w("accel_only");  // max_linear_acceleration: 1.0 only
+  w.Drive(1.0);
+  w.Step(5);  // 0.5 m/s
+  w.Drive(-1.0);
+  w.Step(1);  // reversing at 1 m/s2, not an instant 2 m/s jump
+  EXPECT_NEAR(w.Speed(), 0.4, 1e-3);
+}
+
+TEST(DiffDriveAccelTest, a_negative_limit_fails_the_model_load)
+{
+  // Nav2's velocity_smoother writes deceleration as a negative number: here it would mean unlimited
+  EXPECT_THROW(DiffDriveWorld w("bad_accel"), flatland_server::PluginException);
+}
+
+TEST(DiffDriveAccelTest, a_timed_out_command_ramps_down_instead_of_stopping_dead)
+{
+  DiffDriveWorld w("accel");  // cmd_vel_timeout: 0.5
+  for (int i = 0; i < 3; i++) {
+    w.Drive(1.0);
+    w.Step(4);
+  }
+  // the last command becomes 0.7 s old: stale at 0.6 and 0.7 s, 0.2 m/s shed per step at 2 m/s2
+  w.Step(4);
+  EXPECT_NEAR(w.Speed(), 0.6, 1e-3);
+  w.Step(3);
+  EXPECT_NEAR(w.Speed(), 0.0, 1e-3);
+}
+
+TEST(DiffDriveAccelTest, resuming_from_a_pause_speeds_up_within_the_limit_again)
+{
+  DiffDriveWorld w("accel");  // 1.0 m/s2 up
+  for (int i = 0; i < 3; i++) {  // up to 1 m/s
+    w.Drive(1.0);
+    w.Step(4);
+  }
+  w.Pause(true);
+  w.Step(1);
+  EXPECT_NEAR(w.Speed(), 0.0, 1e-3);
+  w.Pause(false);
+  w.Drive(1.0);
+  w.Step(3);  // from 0, not from the 1 m/s before the pause
+  EXPECT_NEAR(w.Speed(), 0.3, 1e-3);
+}
+
+TEST(DiffDriveAccelTest, turning_is_limited_by_max_angular_acceleration)
+{
+  DiffDriveWorld w("accel");  // 3.0 rad/s2, apart from the linear limits
+  w.Drive(0.0, 1.0);
+  w.Step(2);  // 0.2 s
+  EXPECT_NEAR(w.Turn(), 0.6, 1e-3);
+}
+
+TEST(DiffDriveAccelTest, no_limits_by_default_apply_the_command_at_once)
+{
+  DiffDriveWorld w("no_timeout");
+  w.Drive(1.0, 1.0);
+  w.Step(1);
+  EXPECT_NEAR(w.Speed(), 1.0, 1e-3);
+  EXPECT_NEAR(w.Turn(), 1.0, 1e-3);
+}
+
 // Run all the tests that were declared with TEST()
 int main(int argc, char ** argv)
 {
