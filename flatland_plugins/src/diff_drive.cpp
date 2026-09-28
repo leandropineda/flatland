@@ -56,8 +56,23 @@
 #include <pluginlib/class_list_macros.hpp>
 #include <rclcpp/rclcpp.hpp>
 
+#include <algorithm>
+#include <cmath>
+
 namespace flatland_plugins
 {
+
+/// One step from current toward target: at most accel * dt while speeding up and decel * dt
+/// otherwise; a limit of 0 means unlimited
+static double Ramp(double current, double target, double accel, double decel, double dt)
+{
+  bool speeding_up = std::fabs(target) > std::fabs(current) && target * current >= 0.0;
+  double limit = speeding_up ? accel : decel;
+  if (limit == 0.0) {
+    return target;
+  }
+  return current + std::clamp(target - current, -limit * dt, limit * dt);
+}
 
 void DiffDrive::OnInitialize(const YAML::Node & config)
 {
@@ -84,6 +99,17 @@ void DiffDrive::OnInitialize(const YAML::Node & config)
   cmd_vel_timeout_ = reader.Get<double>("cmd_vel_timeout", 0.0);
   if (!(cmd_vel_timeout_ >= 0.0)) {  // also rejects NaN, which would disable the stop silently
     throw YAMLException("cmd_vel_timeout must be >= 0 (0 disables it)");
+  }
+  max_linear_acceleration_ = reader.Get<double>("max_linear_acceleration", 0.0);
+  max_linear_deceleration_ =
+    reader.Get<double>("max_linear_deceleration", max_linear_acceleration_);
+  max_angular_acceleration_ = reader.Get<double>("max_angular_acceleration", 0.0);
+  // !(x >= 0) also rejects NaN. A negative deceleration (Nav2's velocity_smoother convention) would
+  // otherwise read as unlimited
+  if (!(max_linear_acceleration_ >= 0.0 && max_linear_deceleration_ >= 0.0 &&
+    max_angular_acceleration_ >= 0.0))
+  {
+    throw YAMLException("DiffDrive acceleration limits must be >= 0 (0 = unlimited)");
   }
 
   // noise are in the form of linear x, linear y, angular variances
@@ -287,15 +313,26 @@ void DiffDrive::BeforePhysicsStep(const Timekeeper & timekeeper)
   if (paused_) {
     b2body->SetLinearVelocity(b2Vec2(0, 0));
     b2body->SetAngularVelocity(0);
+    applied_twist_ = geometry_msgs::msg::Twist();  // resuming speeds up within the limits again
     return;
   }
+
+  // Like a base controller's acceleration limits: the applied velocity follows the command, within
+  // max_linear_acceleration / max_linear_deceleration and max_angular_acceleration
+  double dt = timekeeper.GetStepSize();
+  applied_twist_.linear.x = Ramp(
+    applied_twist_.linear.x, twist_msg_.linear.x, max_linear_acceleration_,
+    max_linear_deceleration_, dt);
+  applied_twist_.angular.z = Ramp(
+    applied_twist_.angular.z, twist_msg_.angular.z, max_angular_acceleration_,
+    max_angular_acceleration_, dt);
 
   // we apply the twist velocities, this must be done every physics step to make
   // sure Box2D solver applies the correct velocity through out. The velocity
   // given in the twist message should be in the local frame
-  b2Vec2 linear_vel_local(twist_msg_.linear.x, 0);
+  b2Vec2 linear_vel_local(applied_twist_.linear.x, 0);
   b2Vec2 linear_vel = b2body->GetWorldVector(linear_vel_local);
-  float angular_vel = twist_msg_.angular.z;  // angular is independent of frames
+  float angular_vel = applied_twist_.angular.z;  // angular is independent of frames
 
   // we want the velocity vector in the world frame at the center of mass
 

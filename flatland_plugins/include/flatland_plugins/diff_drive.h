@@ -77,6 +77,10 @@ public:
   geometry_msgs::msg::Twist twist_msg_;  ///< last commanded velocity, zeroed once stale
   double cmd_vel_timeout_ = 0.0;  ///< s; a command older than this reads as zero, 0 disables
   double cmd_age_ = 0.0;          ///< s of sim time the last command has been applied for
+  double max_linear_acceleration_ = 0.0;   ///< m/s^2 while speeding up, 0 = unlimited
+  double max_linear_deceleration_ = 0.0;   ///< m/s^2 slowing down or reversing, 0 = unlimited
+  double max_angular_acceleration_ = 0.0;  ///< rad/s^2 either way, 0 = unlimited
+  geometry_msgs::msg::Twist applied_twist_;  ///< velocity applied last step, within the limits
   rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr pause_srv_;
   bool paused_ = false;  ///< while true the body is held still and cmd_vel is ignored
   nav_msgs::msg::Odometry odom_msg_;

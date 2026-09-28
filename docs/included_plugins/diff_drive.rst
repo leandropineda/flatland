@@ -45,6 +45,19 @@ velocities and odometries are w.r.t. the robot origin
       # paused with pause_service counts
       cmd_vel_timeout: 0.0
 
+      # optional, defaults to 0 (unlimited), in m/s^2, >= 0. The fastest the robot
+      # speeds up toward its commanded forward velocity, as a base controller would
+      max_linear_acceleration: 0.0
+
+      # optional, defaults to max_linear_acceleration (0 = unlimited), in m/s^2,
+      # >= 0. The same while slowing down or reversing; with cmd_vel_timeout, a
+      # stale command then ramps down instead of stopping dead
+      max_linear_deceleration: 0.0
+
+      # optional, defaults to 0 (unlimited), in rad/s^2, >= 0, speeding up and
+      # slowing down
+      max_angular_acceleration: 0.0
+
       # optional, defaults to "odometry/filtered", the topic to advertise for
       # publish noisy odometry
       odom_pub: odometry/filtered

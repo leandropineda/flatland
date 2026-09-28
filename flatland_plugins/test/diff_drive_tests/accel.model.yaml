@@ -1,0 +1,17 @@
+bodies:
+  - name: base
+    pose: [0, 0, 0]
+    type: dynamic
+    color: [1, 1, 0, 1]
+    footprints:
+      - type: circle
+        radius: 0.2
+        density: 1
+plugins:
+  - type: DiffDrive
+    name: drive
+    body: base
+    max_linear_acceleration: 1.0
+    max_linear_deceleration: 2.0
+    max_angular_acceleration: 3.0
+    cmd_vel_timeout: 0.5
