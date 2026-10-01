@@ -70,7 +70,7 @@ plugins:
     # manual overrides allowed via mode_cmd; 'auto' returns to automatic
     modes: [cleaning, transporting, mission]
 
-  - type: Battery
+  - type: Battery              # after DiffDrive, so the depleted stop wins (battery.h)
     name: battery
     body: base_link
     topic: battery_state

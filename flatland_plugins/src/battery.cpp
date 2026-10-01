@@ -305,7 +305,8 @@ void Battery::BeforePhysicsStep(const Timekeeper &timekeeper) {
     }
   }
 
-  // Stop robot when depleted
+  // Stop robot when depleted. A drive plugin also sets the velocity before the physics step, and plugins
+  // run in the model's order, so this stop holds only when Battery is listed after the drive plugin.
   if (depleted_) {
     physics->SetLinearVelocity(b2Vec2(0, 0));
     physics->SetAngularVelocity(0);
@@ -318,25 +319,25 @@ void Battery::BeforePhysicsStep(const Timekeeper &timekeeper) {
     double voltage = voltage_empty_ +
                      (voltage_full_ - voltage_empty_) * percentage;
 
-    // Compute instantaneous current
-    double current;
-    if (is_charging_now) {
-      current = -charge_current_;  // positive = charging in BatteryState convention
-    } else {
-      current = base_current_;
+    // Instantaneous current, in the BatteryState convention: positive while charging, negative while
+    // discharging
+    double current = charge_current_;
+    if (!is_charging_now) {
+      double draw = base_current_;
       if (!depleted_) {
         b2Vec2 vel = physics->GetLinearVelocityFromLocalPoint(b2Vec2(0, 0));
         double speed = std::sqrt(vel.x * vel.x + vel.y * vel.y);
-        current += linear_current_coeff_ * speed +
-                   angular_current_coeff_ * std::fabs(physics->GetAngularVelocity());
+        draw += linear_current_coeff_ * speed +
+                angular_current_coeff_ * std::fabs(physics->GetAngularVelocity());
       }
+      current = -draw;
     }
 
     sensor_msgs::msg::BatteryState msg;
     msg.header.stamp = timekeeper.GetSimTime();
     msg.header.frame_id = body_->name_;
     msg.voltage = static_cast<float>(voltage);
-    msg.current = static_cast<float>(is_charging_now ? current : -current);
+    msg.current = static_cast<float>(current);
     msg.charge = static_cast<float>(charge_ah_);
     msg.capacity = static_cast<float>(capacity_ah_);
     msg.design_capacity = static_cast<float>(capacity_ah_);
@@ -358,8 +359,8 @@ void Battery::BeforePhysicsStep(const Timekeeper &timekeeper) {
     msg.present = true;
     pub_->publish(msg);
 
-    // Battery state of charge as ROS diagnostics — where a real robot's battery
-    // driver reports SOC/health; InOrbit's diagnostics agentlet reads it.
+    // Battery state of charge as ROS diagnostics, where a real robot's battery
+    // driver reports SOC/health, so fleet monitors read it from /<ns>/diagnostics.
     {
       diagnostic_msgs::msg::DiagnosticStatus status;
       status.name = "battery";
