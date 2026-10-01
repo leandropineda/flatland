@@ -1,0 +1,15 @@
+bodies:
+  - name: base
+    pose: [0, 0, 0]
+    type: dynamic
+    color: [1, 1, 0, 1]
+    footprints:
+      - type: circle
+        radius: 0.2
+        density: 1
+plugins:
+  - type: DiffDrive
+    name: drive
+    body: base
+    odom_twist_noise: [0.01, 0, 0.01]
+    seed: 7

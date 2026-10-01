@@ -51,6 +51,7 @@
 #include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
+#include <cmath>
 #include <pluginlib/class_loader.hpp>
 #include <rclcpp/rclcpp.hpp>
 
@@ -98,6 +99,7 @@ public:
     return drive_->ground_truth_msg_.twist.twist.linear;
   }
   const geometry_msgs::msg::Vector3 & OdomLinear() { return drive_->odom_msg_.twist.twist.linear; }
+  const geometry_msgs::msg::Twist & Encoder() { return drive_->twist_pub_msg_.twist; }
   void Drive(double v, double w = 0.0)
   {
     geometry_msgs::msg::Twist cmd;
@@ -283,6 +285,86 @@ TEST(DiffDriveTwistFrameTest, twist_frame_body_reports_it_in_the_child_frame)
 TEST(DiffDriveTwistFrameTest, an_unknown_twist_frame_fails_the_model_load)
 {
   EXPECT_THROW(DiffDriveWorld w("twist_bad"), flatland_server::PluginException);  // "Body"
+}
+
+TEST(DiffDriveScaleErrorTest, a_stopped_robot_reads_exactly_zero)
+{
+  DiffDriveWorld w("scale_error");  // twist_pub_scale_error: [0.02, 0.05], no noise
+  w.Drive(1.0, 1.0);
+  w.Step(5);
+  w.Drive(0.0);
+  w.Step(2);  // the reading reports the previous step's velocity
+  EXPECT_EQ(w.Encoder().linear.x, 0.0);
+  EXPECT_EQ(w.Encoder().angular.z, 0.0);
+}
+
+TEST(DiffDriveScaleErrorTest, the_reading_is_off_by_one_fraction_at_every_speed)
+{
+  DiffDriveWorld w("scale_error");
+  double error[2][2];  // forward, yaw rate; at 1 and at 0.5 m/s or rad/s
+  for (int i = 0; i < 2; i++) {
+    double v = 1.0 / (i + 1);
+    w.Drive(v);
+    w.Step(2);
+    error[0][i] = w.Encoder().linear.x / v - 1;
+    EXPECT_NEAR(std::hypot(w.OdomLinear().x, w.OdomLinear().y), v, 1e-3);  // only twist_pub
+    EXPECT_NEAR(std::hypot(w.GroundTruthLinear().x, w.GroundTruthLinear().y), v, 1e-3);
+    w.Drive(0.0, v);
+    w.Step(2);
+    error[1][i] = w.Encoder().angular.z / v - 1;
+  }
+  double bound[2] = {0.02, 0.05};
+  for (int axis = 0; axis < 2; axis++) {
+    EXPECT_NE(error[axis][0], 0.0);
+    EXPECT_LE(std::fabs(error[axis][0]), bound[axis]);
+    EXPECT_NEAR(error[axis][0], error[axis][1], 1e-6);  // drawn once per run
+  }
+}
+
+TEST(DiffDriveScaleErrorTest, the_same_seed_draws_the_same_errors_and_another_seed_does_not)
+{
+  auto reading = [](const std::string & name) {
+    DiffDriveWorld w(name);
+    w.Drive(1.0, 1.0);
+    w.Step(2);
+    return w.Encoder();
+  };
+  geometry_msgs::msg::Twist a = reading("scale_error");  // seed: 8
+  geometry_msgs::msg::Twist b = reading("scale_error");
+  EXPECT_EQ(a.linear.x, b.linear.x);
+  EXPECT_EQ(a.angular.z, b.angular.z);
+  // seed: 7, fails if the seed is ignored (every plugin the same default)
+  EXPECT_NE(a.linear.x, reading("scale_error_other_seed").linear.x);
+}
+
+TEST(DiffDriveScaleErrorTest, the_same_seed_repeats_the_noise)
+{
+  auto reading = [] {
+    DiffDriveWorld w("seed_noise");  // seed: 7, odom_twist_noise: [0.01, 0, 0.01]
+    w.Step(1);  // at standstill the reading is the noise alone
+    return w.Encoder();
+  };
+  geometry_msgs::msg::Twist a = reading();
+  geometry_msgs::msg::Twist b = reading();
+  EXPECT_NE(a.linear.x, 0.0);
+  EXPECT_EQ(a.linear.x, b.linear.x);
+  EXPECT_EQ(a.angular.z, b.angular.z);
+}
+
+TEST(DiffDriveScaleErrorTest, a_bound_outside_0_to_1_fails_the_model_load)
+{
+  EXPECT_THROW(DiffDriveWorld w("bad_scale_error"), flatland_server::PluginException);  // 1
+}
+
+TEST(DiffDriveScaleErrorTest, no_scale_error_by_default_reads_the_true_velocity)
+{
+  DiffDriveWorld w("no_timeout");
+  w.Drive(1.0);
+  w.Step(2);
+  EXPECT_NEAR(w.Encoder().linear.x, 1.0, 1e-6);
+  w.Drive(0.0, 1.0);
+  w.Step(2);
+  EXPECT_NEAR(w.Encoder().angular.z, 1.0, 1e-6);
 }
 
 // Run all the tests that were declared with TEST()
