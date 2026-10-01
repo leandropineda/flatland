@@ -1,0 +1,15 @@
+bodies:
+  - name: base
+    pose: [0, 0, 0]
+    type: dynamic
+    color: [1, 1, 0, 1]
+    footprints:
+      - type: circle
+        radius: 0.2
+        density: 1
+plugins:
+  - type: DiffDrive
+    name: drive
+    body: base
+    twist_pub_scale_error: [0.02, 0.05]
+    seed: 7

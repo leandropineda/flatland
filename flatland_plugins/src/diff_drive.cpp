@@ -122,6 +122,17 @@ void DiffDrive::OnInitialize(const YAML::Node & config)
   std::vector<double> odom_twist_noise =
     reader.GetList<double>("odom_twist_noise", {0, 0, 0}, 3, 3);
   std::vector<double> odom_pose_noise = reader.GetList<double>("odom_pose_noise", {0, 0, 0}, 3, 3);
+  // A wheel encoder reads zero at standstill and is off by a fixed fraction of what it measures
+  // (wheel radius, track width, slip in turns). Each bound draws one error per run, uniform in
+  // [-bound, +bound], on the twist_pub forward speed and yaw rate
+  std::vector<double> scale_error_bound =
+    reader.GetList<double>("twist_pub_scale_error", {0, 0}, 2, 2);
+  for (double bound : scale_error_bound) {
+    if (!(bound >= 0.0 && bound < 1.0)) {  // also rejects NaN
+      throw YAMLException("DiffDrive twist_pub_scale_error bounds must be >= 0 and < 1");
+    }
+  }
+  int seed = reader.Get<int>("seed", 0);  // repeats the scale errors and the noise, 0 = random
 
   double pub_rate = reader.Get<double>("pub_rate", std::numeric_limits<double>::infinity());
   update_timer_.SetRate(pub_rate);
@@ -206,8 +217,16 @@ void DiffDrive::OnInitialize(const YAML::Node & config)
   }
 
   // init the random number generators
-  std::random_device rd;
-  rng_ = std::default_random_engine(rd());
+  rng_ = std::mt19937(seed != 0 ? static_cast<unsigned>(seed) : std::random_device{}());
+  std::uniform_real_distribution<double> unit_uniform(-1.0, 1.0);  // never zero-width
+  for (unsigned int i = 0; i < 2; i++) {
+    twist_pub_scale_error_[i] = scale_error_bound[i] * unit_uniform(rng_);
+  }
+  if (scale_error_bound[0] > 0.0 || scale_error_bound[1] > 0.0) {
+    RCLCPP_INFO(
+      rclcpp::get_logger("DiffDrive"), "%s: twist_pub scale error %+.4f forward, %+.4f yaw rate",
+      GetModel()->GetName().c_str(), twist_pub_scale_error_[0], twist_pub_scale_error_[1]);
+  }
   for (unsigned int i = 0; i < 3; i++) {
     // variance is standard deviation squared
     noise_std_dev_[i] = sqrt(odom_pose_noise[i]);
@@ -286,17 +305,16 @@ void DiffDrive::BeforePhysicsStep(const Timekeeper & timekeeper)
     if (enable_twist_pub_) {
       // Transform global frame velocity into local frame to simulate encoder
       // readings
-      geometry_msgs::msg::TwistStamped twist_pub_msg;
-      twist_pub_msg.header.stamp = timekeeper.GetSimTime();
-      twist_pub_msg.header.frame_id = odom_msg_.child_frame_id;
+      twist_pub_msg_.header.stamp = timekeeper.GetSimTime();
+      twist_pub_msg_.header.frame_id = odom_msg_.child_frame_id;
 
       // Forward velocity in twist.linear.x
-      twist_pub_msg.twist.linear.x =
-        cos(angle) * linear_vel_local.x + sin(angle) * linear_vel_local.y + Noise(3);
+      double forward = cos(angle) * linear_vel_local.x + sin(angle) * linear_vel_local.y;
+      twist_pub_msg_.twist.linear.x = forward * (1 + twist_pub_scale_error_[0]) + Noise(3);
 
       // Angular velocity in twist.angular.z
-      twist_pub_msg.twist.angular.z = angular_vel + Noise(5);
-      twist_pub_->publish(twist_pub_msg);
+      twist_pub_msg_.twist.angular.z = angular_vel * (1 + twist_pub_scale_error_[1]) + Noise(5);
+      twist_pub_->publish(twist_pub_msg_);
     }
 
     // publish odom tf

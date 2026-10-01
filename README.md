@@ -32,6 +32,10 @@ What this branch adds over upstream `ros2-jazzy`:
   unlimited): the robot follows its command as a base controller lets it.
 * **DiffDrive `twist_frame`** (`world`, the default, or `body`): the frame of
   the odom and ground-truth twist; `body` is what `nav_msgs/Odometry` specifies.
+* **DiffDrive `twist_pub_scale_error` and `seed`** (defaults [0, 0], exact
+  readings, and 0, a random seed): a fixed scale error per run on the encoder
+  twist's speed and yaw rate, as a real encoder has. Without odom_twist_noise
+  the reading is zero at standstill and its error grows with distance.
 * **Laser `no_return_value` and `range_min`** (defaults NaN and 0): report
   beams that hit nothing, and the minimum range, the way a real driver does.
 * **Gps `noise_std_dev` and `seed`** (default 0, exact fixes): white

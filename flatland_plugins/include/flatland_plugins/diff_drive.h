@@ -91,8 +91,11 @@ public:
   bool enable_odom_pub_;   ///< YAML parameter to enable odom publishing
   bool enable_twist_pub_;  ///< YAML parameter to enable twist publishing
 
-  std::default_random_engine rng_;
+  geometry_msgs::msg::TwistStamped twist_pub_msg_;  ///< the last simulated encoder reading
+
+  std::mt19937 rng_;  ///< seeded by the seed parameter (0 = random)
   std::array<double, 6> noise_std_dev_;  ///< odom pose x, y, yaw, then twist x, y, yaw
+  std::array<double, 2> twist_pub_scale_error_{};  ///< forward speed, yaw rate; drawn once per run
   // a zero-sigma normal_distribution is undefined behavior (it aborts under _GLIBCXX_ASSERTIONS)
   std::normal_distribution<double> unit_{0.0, 1.0};
   double Noise(int i) { return noise_std_dev_[i] * unit_(rng_); }

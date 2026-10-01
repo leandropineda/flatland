@@ -94,6 +94,19 @@ velocities and odometries are w.r.t. the robot origin
       # apply to the twist components of the odometry message
       odom_twist_noise: [0, 0, 0]
 
+      # optional, defaults to [0, 0], each bound >= 0 and < 1, on [forward speed,
+      # yaw rate] of twist_pub only. At load the plugin draws one scale error per
+      # axis, uniform in [-bound, +bound], and keeps it for the run. The reading is
+      # the true velocity times (1 + error), plus the odom_twist_noise on x velocity
+      # and yaw rate. With that noise at 0 it is exactly zero at standstill, and its
+      # dead-reckoning error grows with the distance driven and the angle turned, as
+      # a real encoder's does
+      twist_pub_scale_error: [0, 0]
+
+      # optional, defaults to 0 (a random seed each run): seeds the scale errors and
+      # the noise, so each run draws the same ones
+      seed: 0
+
       # optional, defaults to the diagonal [x, y, yaw] components replaced by 
       # odom_pose_noise with all other values equals zero, must have length of 36, 
       # represents a 6x6 covariance matrix for x, y, z, roll, pitch, yaw. 
