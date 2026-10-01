@@ -4,7 +4,7 @@
   <version>0.1.0</version>
   <description>Component container using the EventsExecutor (lower idle CPU
     than the waitset executors of component_container_isolated)</description>
-  <maintainer email="leandro@inorbit.ai">Leandro Pineda</maintainer>
+  <maintainer email="8092356+leandropineda@users.noreply.github.com">Leandro Pineda</maintainer>
   <license>BSD-3-Clause</license>
   <buildtool_depend>ament_cmake</buildtool_depend>
   <depend>rclcpp</depend>

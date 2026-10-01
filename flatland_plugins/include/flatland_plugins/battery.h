@@ -23,6 +23,9 @@ struct ChargingZone {
   std::string name;
 };
 
+// Battery: drains with the body's speed and stops the body at 0 %, charges in charging zones or on command.
+// List it after the model's drive plugin: both set the body's velocity before the physics step, in plugin
+// order, so a drive listed after it would override the depleted stop.
 class Battery : public flatland_server::ModelPlugin {
  public:
   void OnInitialize(const YAML::Node &config) override;
@@ -39,7 +42,7 @@ class Battery : public flatland_server::ModelPlugin {
   UpdateTimer update_timer_;
   rclcpp::Publisher<sensor_msgs::msg::BatteryState>::SharedPtr pub_;
   // Battery state of charge as ROS diagnostics (where a real robot's battery
-  // driver surfaces it), so InOrbit reads it via the diagnostics agentlet.
+  // driver surfaces it), so fleet monitors read it from /<ns>/diagnostics.
   rclcpp::Publisher<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr diag_pub_;
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr marker_pub_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr zone_marker_pub_;
